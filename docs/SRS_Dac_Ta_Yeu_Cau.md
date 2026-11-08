@@ -2,282 +2,153 @@
 ## HỆ THỐNG QUẢN LÝ CHI TIÊU CÁ NHÂN (QLchitieu)
 
 > **Mã dự án:** N4_QLchitieu  
-> **Phiên bản:** 1.0  
-> **Tiêu chuẩn áp dụng:** IEEE Std 830-1998  
-> **Trạng thái:** Đã phê duyệt  
-> **Ngày cập nhật:** 2026-11-08
+> **Repository:** [https://github.com/Giang-49/QLchitieu](https://github.com/Giang-49/QLchitieu)  
+> **Google Sheet tham chiếu:** [N4_QLchitieu Spreadsheet](https://docs.google.com/spreadsheets/d/1F6wNzzoMZXcfSOnE1PY7pOnpFfUA0xy1r9P4A_vtToU/edit?usp=sharing)  
+> **Phiên bản:** 1.0 (MVP)  
+> **Tiêu chuẩn áp dụng:** IEEE Std 830-1998 & Agile Scrum
 
 ---
 
 ## 1. Giới thiệu (Introduction)
 
 ### 1.1. Mục đích
-Tài liệu này mô tả đầy đủ và chi tiết các yêu cầu chức năng, phi chức năng của phần mềm **Quản lý Chi tiêu Cá nhân (QLchitieu)**. Tài liệu đóng vai trò là cơ sở thống nhất giữa các bên liên quan (**Business Analyst, Developer, Tester, Stakeholder**) để thiết kế, phát triển, kiểm thử và nghiệm thu hệ thống.
+Tài liệu này mô tả đầy đủ và chi tiết các yêu cầu chức năng, phi chức năng của phần mềm **Quản lý Chi tiêu Cá nhân (QLchitieu)**. Tài liệu đóng vai trò là cơ sở thống nhất giữa các bên liên quan (**Business Analyst / Scrum Master, Frontend Developer, Backend Developer, QA / Tester, Stakeholder**) để thiết kế, phát triển, kiểm thử và nghiệm thu hệ thống.
 
 ### 1.2. Phạm vi sản phẩm (Product Scope)
 Phần mềm hỗ trợ người dùng cá nhân thực hiện các hoạt động:
-- Ghi nhận và quản lý các giao dịch thu – chi hàng ngày.
-- Phân loại giao dịch theo danh mục và ví nguồn tiền.
-- Thiết lập hạn mức ngân sách và nhận cảnh báo khi chi tiêu tiệm cận hoặc vượt ngưỡng.
-- Xem báo cáo thống kê chi tiêu trực quan dưới dạng biểu đồ cơ cấu và xu hướng.
-- Quản lý các khoản vay/nợ (Sổ nợ) và theo dõi tiến độ hoàn trả.
-- Xuất dữ liệu báo cáo ra file Excel (.xlsx).
+- Ghi nhận và quản lý các giao dịch thu – chi hàng ngày (US1.1 – US1.4).
+- Phân loại giao dịch theo danh mục đa cấp và ví nguồn tiền (US4.1 – US4.3).
+- Thiết lập hạn mức ngân sách tháng và nhận cảnh báo khi vượt ngưỡng 80% và 100% (US2.1 – US2.3).
+- Xem báo cáo thống kê chi tiêu trực quan dưới dạng biểu đồ tròn và cột (US3.1, US3.2).
+- Quản lý các khoản vay/nợ (Sổ nợ), theo dõi lịch sử trả nợ và nhắc hẹn đáo hạn (US5.1 – US5.4).
+- Xuất dữ liệu báo cáo ra file Excel .xlsx / .csv (US3.3).
 
-**Nằm ngoài phạm vi (Out of Scope):**
-- Quản lý nhiều người dùng dùng chung / phân quyền nhóm phức tạp (ở phiên bản MVP).
-- Tích hợp Open Banking / kết nối trực tiếp với API của các ngân hàng thương mại.
-- Các tính năng đầu tư tài chính, chứng khoán, crypto, hoặc quản lý mục tiêu tiết kiệm đa tầng.
+**Nằm ngoài phạm vi (Out of Scope ở MVP):**
+- Quản lý nhiều người dùng dùng chung / phân quyền nhóm phức tạp.
+- Tích hợp Open Banking / kết nối API ngân hàng thực tế.
+- Các tính năng đầu tư tài chính, chứng khoán, crypto, hoặc mục tiêu tiết kiệm đa tầng.
 
 ### 1.3. Đối tượng sử dụng (Intended Audience)
 
-| Đối tượng | Mục đích sử dụng |
+| Đối tượng | Vai trò & Trách nhiệm chính |
 | :--- | :--- |
 | **Người dùng cuối (End-user)** | Cá nhân muốn theo dõi và kiểm soát chi tiêu, duy trì kỷ luật tài chính hàng ngày. |
-| **BA / Scrum Master** | Phân tích yêu cầu, quản lý Product Backlog, lập kế hoạch Sprint và nghiệm thu. |
-| **Developer (FE/BE)** | Căn cứ để xây dựng kiến trúc cơ sở dữ liệu, API backend và giao diện người dùng. |
-| **Tester / QA** | Căn cứ viết kịch bản kiểm thử (Test Scenarios), bộ Test Cases và kiểm tra sự phù hợp. |
+| **BA / Scrum Master** | Phân tích yêu cầu, quản lý Product Backlog, lập Sprint Plan (7 tuần) và nghiệm thu. |
+| **Frontend Developer** | Thiết kế Wireframe, UI/UX Mobile-first, Dashboard, biểu đồ và form nhập liệu. |
+| **Backend Developer** | Thiết kế CSDL (ERD), xây dựng hệ thống RESTful API, tối ưu query và logic rollback. |
+| **QA / Tester** | Viết Acceptance Criteria, Test Cases và kịch bản BDD (Given - When - Then). |
 
 ### 1.4. Tài liệu tham khảo (References)
-1. Product Backlog – Google Sheet (`N4_QLchitieu`).
-2. User Story Map dự án Quản lý chi tiêu.
-3. Bộ Kịch bản kiểm thử (Test Scenarios) của dự án.
-4. IEEE Std 830-1998: *IEEE Recommended Practice for Software Requirements Specifications*.
+1. **Google Sheet N4_QLchitieu:** Bao gồm 7 sheets (*nhiệm vụ, product backlog, map, kịch bản, tiêu chí chấp nhận& kiểm thử, theme, sprint backlog*).
+2. **User Story Map:** Phân loại MoSCoW (Must-Have, Should-Have, Nice-to-Have).
+3. **Bộ Kịch bản kiểm thử BDD (Gherkin):** 17 bộ kịch bản chi tiết.
+4. **IEEE Std 830-1998:** *IEEE Recommended Practice for Software Requirements Specifications*.
 
 ---
 
 ## 2. Tổng quan / Yêu cầu cấp cao (High-Level Requirements)
 
-### 2.1. Mục tiêu kinh doanh (Business Goals)
-Giúp người dùng cá nhân quản lý dòng tiền hiệu quả, kiểm soát chi tiêu theo hạn mức, theo dõi công nợ chặt chẽ và có cái nhìn tổng quan về tình hình tài chính cá nhân thông qua các báo cáo trực quan.
+### 2.1. Mục tiêu kinh doanh
+Giúp người dùng cá nhân quản lý dòng tiền hiệu quả, kiểm soát chi tiêu theo hạn mức, theo dõi công nợ chặt chẽ và có cái nhìn tổng quan về tình hình tài chính thông qua báo cáo trực quan.
 
 ### 2.2. Giả định (Assumptions)
-- Người dùng có kết nối Internet ổn định khi sử dụng phần mềm.
-- Người dùng sử dụng các trình duyệt hiện đại (Google Chrome, Apple Safari, Mozilla Firefox, Microsoft Edge).
-- Mỗi tài khoản chỉ thuộc về một cá nhân sở hữu (không chia sẻ quyền chỉnh sửa đồng thời).
-- Dữ liệu giao dịch ban đầu do người dùng tự chủ động nhập (chưa tự động quét từ SMS hay Banking).
+- Người dùng có kết nối Internet ổn định khi sử dụng hệ thống.
+- Người dùng sử dụng các trình duyệt hiện đại (Chrome, Safari, Firefox, Edge).
+- Mỗi tài khoản thuộc về một cá nhân riêng biệt.
+- Dữ liệu giao dịch ban đầu do người dùng tự chủ động nhập.
 
 ### 2.3. Ràng buộc (Constraints)
-- **Giao diện:** Thiết kế ưu tiên chuẩn **Mobile-first** (giao diện co giãn responsive mượt mà).
-- **Backend:** Xây dựng theo kiến trúc REST API chuẩn mực, phân tách rõ tầng controller, service, repository.
-- **Cơ sở dữ liệu:** Hệ quản trị CSDL quan hệ (RDBMS) như MySQL hoặc PostgreSQL.
-- **Phương pháp phát triển:** Agile / Scrum theo các Sprint ngắn hạn.
-- **Giao dịch:** Không tích hợp cổng thanh toán tiền tệ thực tế trong phiên bản đầu (chỉ đóng vai trò ghi chép sổ sách).
+- Giao diện ưu tiên chuẩn **Mobile-first Responsive**.
+- Backend sử dụng kiến trúc chuẩn **REST API**.
+- Hệ quản trị cơ sở dữ liệu quan hệ **MySQL 8.0+** hoặc **PostgreSQL**.
+- Quy trình phát triển theo mô hình **Agile/Scrum** (Sprint 1, Sprint 2, Sprint 3).
 
 ---
 
-## 3. Yêu cầu chức năng (Functional Requirements – FR)
+## 3. Yêu cầu chức năng (Functional Requirements – 17 User Stories)
 
 ### 3.1. Epic 01 – Quản lý giao dịch thu chi
-- **FR-01.1: Thêm mới giao dịch**
-  - Hệ thống cho phép người dùng thêm giao dịch thu hoặc chi.
-  - Các thông tin cần nhập: Loại giao dịch (Thu/Chi), Số tiền (> 0), Danh mục, Ví nguồn, Ghi chú (tùy chọn), Ảnh hóa đơn (tùy chọn), Thời gian giao dịch.
-  - Sau khi lưu thành công, hệ thống tự động cập nhật số dư của ví tương ứng và hiển thị thông báo thành công.
-- **FR-01.2: Cập nhật giao dịch**
-  - Người dùng có thể sửa toàn bộ thông tin của giao dịch đã tạo.
-  - Hệ thống tự động tính toán lại mức chênh lệch số tiền và điều chỉnh số dư ví nguồn về đúng trạng thái thực tế.
-- **FR-01.3: Xóa giao dịch**
-  - Cho phép xóa giao dịch kèm theo hộp thoại xác nhận (Confirmation Modal).
-  - Khi xác nhận xóa, hệ thống tự động hoàn lại số dư ví tương ứng.
-  - Cho phép người dùng hủy thao tác xóa nếu muốn giữ lại.
-- **FR-01.4: Xem, lọc và tìm kiếm giao dịch**
-  - Hiển thị danh sách giao dịch dưới dạng dòng thời gian (Timeline), bản ghi mới nhất xếp lên đầu.
-  - Hỗ trợ bộ lọc linh hoạt: Theo danh mục, khoảng thời gian (từ ngày - đến ngày), loại giao dịch, theo ví.
-  - Hỗ trợ tìm kiếm theo từ khóa ghi chú.
-  - Áp dụng phân trang (Pagination) hoặc tải vô hạn (Infinite Scroll) khi dữ liệu lớn.
+- **US1.1: Thêm mới giao dịch [Sprint 1]**
+  - Cho phép người dùng thêm mới giao dịch thu hoặc chi với: Số tiền (> 0), Loại (Thu/Chi), Danh mục, Ví nguồn, Ghi chú, Ảnh hóa đơn.
+  - Tự động cộng/trừ số dư ví tương ứng và hiển thị thông báo thành công.
+- **US1.2: Cập nhật thông tin giao dịch [Sprint 1]**
+  - Cho phép người dùng chỉnh sửa thông tin giao dịch đã tạo.
+  - Tự động hoàn lại số tiền cũ vào ví cũ và áp dụng số tiền/loại mới vào ví mới.
+- **US1.3: Xóa giao dịch & Hoàn tiền ví [Sprint 1]**
+  - Cho phép xóa giao dịch kèm popup cảnh báo xác nhận.
+  - Hệ thống tự động tính toán hoàn lại số tiền vào ví (Cộng lại nếu xóa Chi, trừ bớt nếu xóa Thu).
+- **US1.4: Xem & Lọc theo danh mục [Sprint 1]**
+  - Cung cấp bộ lọc theo danh mục, hiển thị danh sách giao dịch mới nhất giảm dần.
+  - Xử lý màn hình trống khi danh mục chưa phát sinh giao dịch.
 
 ### 3.2. Epic 02 – Quản lý hạn mức ngân sách
-- **FR-02.1: Thiết lập hạn mức ngân sách**
-  - Cho phép đặt hạn mức chi tiêu tối đa theo từng danh mục cụ thể trong phạm vi một tháng dương lịch.
-  - Số tiền hạn mức thiết lập bắt buộc phải lớn hơn 0.
-- **FR-02.2: Theo dõi tiến độ sử dụng ngân sách**
-  - Hiển thị thanh tiến độ trực quan (Progress Bar) phản ánh tỷ lệ phần trăm ngân sách đã sử dụng.
-  - Màu sắc tự động thay đổi theo các mốc:
-    - `< 70%`: Xanh lá (An toàn).
-    - `70% – 99%`: Vàng cam (Cảnh báo).
-    - `≥ 100%`: Đỏ (Vượt ngưỡng / Bội chi).
-- **FR-02.3: Cảnh báo khi vượt ngưỡng**
-  - Hệ thống tự động gửi cảnh báo khi chi tiêu trong danh mục đạt ngưỡng **80%** và **100%** của hạn mức đã đặt.
-  - Phương thức hiển thị: Thông báo nổi bật trên giao diện (In-app Alert) và Push Notification (nếu thiết bị hỗ trợ).
+- **US2.1: Cài đặt hạn mức ngân sách tháng [Sprint 1]**
+  - Cho phép đặt hạn mức chi tiêu tối đa theo danh mục trong một tháng (> 0).
+  - Ràng buộc: Mỗi danh mục chỉ có 1 hạn mức duy nhất trong cùng một tháng.
+- **US2.2: Hiển thị tiến độ sử dụng ngân sách [Sprint 2]**
+  - Thanh tiến độ trực quan hiển thị %: $(\text{Tổng chi} / \text{Hạn mức}) \times 100\%$.
+  - Đổi màu theo mốc: Xanh (< 70%), Vàng (70% - 99%), Đỏ ($\ge 100\%$).
+- **US2.3: Cảnh báo khi vượt ngưỡng ngân sách [Sprint 1]**
+  - Tự động gửi thông báo khi chi tiêu đạt **80%** (Cảnh báo vàng) và **100%** (Cảnh báo đỏ bội chi).
+  - Tần suất: Mỗi ngưỡng cảnh báo chỉ gửi 1 lần duy nhất trong tháng.
 
 ### 3.3. Epic 03 – Báo cáo thống kê chi tiêu
-- **FR-03.1: Biểu đồ tròn cơ cấu chi tiêu**
-  - Thể hiện tỷ trọng (%) chi tiêu giữa các danh mục khác nhau trong khoảng thời gian người dùng tùy chọn (Tuần này, Tháng này, Năm nay, Tùy chỉnh).
-  - Có cơ chế xử lý màn hình trống (Empty state) khi chưa phát sinh chi tiêu trong kỳ.
-- **FR-03.2: Biểu đồ so sánh Thu vs Chi**
-  - Hiển thị biểu đồ cột so sánh tương quan giữa tổng số tiền thu vào và tổng số tiền chi ra theo từng tháng trong năm.
-  - Tích hợp Tooltip tương tác hiển thị chi tiết số tiền khi rê chuột (hover) hoặc chạm (click).
-- **FR-03.3: Xuất báo cáo Excel**
-  - Cho phép trích xuất toàn bộ hoặc danh sách giao dịch đã lọc ra tệp tin định dạng `.xlsx`.
-  - Cấu trúc các cột xuất: Ngày giao dịch, Phân loại (Thu/Chi), Tên danh mục, Số tiền, Ví thanh toán, Ghi chú.
+- **US3.1: Biểu đồ tròn phân bổ chi tiêu [Sprint 2]**
+  - Hiển thị tỷ trọng (%) chi tiêu giữa các danh mục theo bộ lọc Tuần/Tháng/Năm.
+  - Tổng các phần tử biểu đồ luôn bằng 100%.
+- **US3.2: Biểu đồ cột so sánh Thu vs Chi [Sprint 2]**
+  - Biểu đồ cột đôi so sánh tổng thu và tổng chi qua các tháng trong năm.
+  - Phản ánh chính xác khả năng tiết kiệm ròng.
+- **US3.3: Xuất dữ liệu báo cáo ra Excel/CSV [Sprint 3]**
+  - Cho phép xuất file `.xlsx` hoặc `.csv` danh sách giao dịch.
+  - Đầy đủ tiêu đề cột (Ngày, Loại, Danh mục, Số tiền, Ví, Ghi chú), hỗ trợ tiếng Việt UTF-8.
 
 ### 3.4. Epic 04 – Quản lý danh mục thu chi
-- **FR-04.1: Tạo / Sửa danh mục**
-  - Hỗ trợ tạo mới và chỉnh sửa danh mục chi tiêu/thu nhập với các trường: Tên danh mục, Biểu tượng (Icon), Phân loại (Thu/Chi), Mã màu hiển thị (Color code).
-- **FR-04.2: Xóa / Ẩn danh mục**
-  - Cho phép người dùng xóa hoặc ẩn danh mục không còn sử dụng.
-  - Cơ chế bảo toàn dữ liệu: Nếu danh mục đã có giao dịch phát sinh, hệ thống yêu cầu người dùng chuyển toàn bộ giao dịch sang một danh mục khác trước khi hoàn tất xóa vĩnh viễn.
-- **FR-04.3: Quản lý danh mục cha – con**
-  - Cho phép thiết lập cây danh mục đa cấp: Danh mục con trực thuộc danh mục cha (Ví dụ: Danh mục cha `Ăn uống` chứa các danh mục con `Ăn trưa`, `Cà phê`, `Đi chợ`).
+- **US4.1: Tạo mới danh mục thu/chi [Sprint 1]**
+  - Nhập: Tên danh mục, Biểu tượng (Icon), Màu sắc, Phân loại (Thu/Chi).
+- **US4.2: Ẩn danh mục & bảo lưu dữ liệu [Sprint 1]**
+  - Khi xóa danh mục đang có giao dịch, bắt buộc hiện popup yêu cầu chọn 1 danh mục thay thế để chuyển dữ liệu sang nhằm bảo toàn lịch sử.
+- **US4.3: Quản lý danh mục cha - con [Sprint 2]**
+  - Hỗ trợ thiết lập cây phân cấp cha - con qua `parent_id`.
+  - Khi xem báo cáo, tổng tiền của danh mục cha bao gồm cả tiền của các danh mục con.
 
 ### 3.5. Epic 05 – Quản lý hồ sơ vay (Sổ nợ)
-- **FR-05.1: Tạo khoản nợ mới**
-  - Ghi nhận khoản nợ với 2 loại hình:
-    - **Đi vay (Borrow):** Nhận tiền vay từ người khác -> Số dư ví được cộng thêm.
-    - **Cho vay (Lend):** Chuyển tiền cho người khác vay -> Số dư ví bị trừ đi.
-  - Thông tin yêu cầu: Số tiền, Người liên quan (Tên đối tác), Ngày hẹn thanh toán, Ví thực hiện, Ghi chú.
-- **FR-05.2: Ghi nhận trả nợ**
-  - Hỗ trợ trả nợ từng phần hoặc thanh toán tất toán toàn bộ khoản nợ.
-  - Hệ thống tự động cập nhật số dư còn lại của khoản nợ và điều chỉnh lại số dư ví nguồn tương ứng.
-  - Nghiệp vụ: Chặn không cho phép số tiền thanh toán lớn hơn số nợ còn lại.
-- **FR-05.3: Xem danh sách sổ nợ theo trạng thái**
-  - Phân loại trực quan danh sách các khoản vay/cho vay theo các tab trạng thái:
-    - *Chưa thanh toán (Unpaid)*
-    - *Đã hoàn tất (Completed)*
-    - *Quá hạn (Overdue)*
-- **FR-05.4: Thông báo nhắc hẹn trả/đòi nợ**
-  - Tự động kích hoạt thông báo nhắc nhở khi đến ngày hoặc cận ngày hẹn thanh toán nợ.
+- **US5.1: Ghi nhận khoản nợ mới (Vay/Cho vay) [Sprint 1]**
+  - Ghi nhận: Số tiền, Tên người liên quan, Ngày hẹn trả, Ví thanh toán.
+  - Tự động trừ tiền ví nếu Cho vay, cộng tiền ví nếu Đi vay.
+- **US5.2: Cập nhật trả nợ [Sprint 1]**
+  - Hỗ trợ trả từng phần hoặc tất toán: $\text{Dư nợ mới} = \text{Dư nợ cũ} - \text{Số tiền trả}$.
+  - Chặn nhập số tiền trả vượt quá dư nợ còn lại. Đổi trạng thái sang "Đã hoàn tất" khi dư nợ = 0.
+- **US5.3: Xem danh sách sổ nợ theo trạng thái [Sprint 1]**
+  - Chia rõ 3 tab bộ lọc: *Chưa thanh toán*, *Quá hạn*, *Đã hoàn tất*.
+  - Tự động chuyển các khoản nợ có Ngày hẹn trả < Ngày hiện tại vào tab Quá hạn và bôi đỏ.
+- **US5.4: Thông báo nhắc hẹn trả/thu hồi nợ [Sprint 3]**
+  - Hệ thống nền quét định kỳ mỗi ngày, gửi thông báo cho các khoản nợ đến hạn trong ngày hoặc quá hạn.
+  - Bấm thông báo chuyển thẳng vào màn hình chi tiết khoản nợ.
 
 ---
 
 ## 4. Yêu cầu phi chức năng (Non-Functional Requirements – NFR)
 
-| Mã NFR | Phân loại | Tiêu chuẩn chất lượng chi tiết |
+| Mã NFR | Tiêu chí | Đặc tả kỹ thuật |
 | :--- | :--- | :--- |
-| **NFR-01** | **Hiệu năng (Performance)** | - Thời gian phản hồi và tải danh sách giao dịch ≤ 2.0 giây với tập dữ liệu 1.000 bản ghi.<br/>- Tối ưu truy vấn CSDL với chỉ mục (indexes) trên `user_id`, `date`, `category_id`. |
-| **NFR-02** | **Độ sẵn sàng (Availability)** | - Hệ thống đảm bảo mức độ khả dụng (Uptime) đạt tối thiểu ≥ 99% trong giờ hoạt động bình thường. |
-| **NFR-03** | **Bảo mật (Security)** | - Mật khẩu người dùng được băm an toàn bằng thuật toán hiện đại (Bcrypt / Argon2).<br/>- Toàn bộ lưu lượng truyền tải qua HTTPS với chứng chỉ SSL/TLS.<br/>- Kiểm soát phân quyền dữ liệu nghiêm ngặt: Mỗi người dùng chỉ được xem và sửa đổi dữ liệu do chính mình tạo ra. |
-| **NFR-04** | **Giao diện (UI/UX)** | - Giao diện thiết kế theo phương châm Mobile-First Responsive, hiển thị mượt mà từ màn hình điện thoại (375px) đến máy tính bảng và desktop.<br/>- Hỗ trợ chế độ nền sáng / tối (Light/Dark Mode). |
-| **NFR-05** | **Tương thích (Compatibility)** | - Hoạt động đồng nhất trên các trình duyệt chuẩn web mới nhất: Google Chrome, Apple Safari, Mozilla Firefox, Microsoft Edge. |
-| **NFR-06** | **Khả năng mở rộng (Scalability)** | - Kiến trúc phần mềm và mô hình dữ liệu cho phép mở rộng linh hoạt trong tương lai: Hỗ trợ nhiều loại ví, đa tiền tệ (VND, USD, EUR), nhóm chi tiêu gia đình. |
-| **NFR-07** | **Khả năng sử dụng (Usability)** | - Thiết kế giao diện trực quan, rõ ràng, thao tác nhập giao dịch nhanh chóng dưới 10 giây; người dùng mới có thể làm quen sử dụng hệ thống thành thạo trong vòng dưới 15 phút. |
+| **NFR-01** | **Hiệu năng** | Thời gian phản hồi và tải danh sách giao dịch $\le 2.0$ giây với tập dữ liệu 1.000 bản ghi. |
+| **NFR-02** | **Độ sẵn sàng** | Hệ thống đảm bảo Uptime $\ge 99\%$ trong giờ hoạt động bình thường. |
+| **NFR-03** | **Bảo mật** | Mật khẩu băm an toàn Bcrypt; toàn bộ API yêu cầu xác thực JWT qua HTTPS; cô lập dữ liệu người dùng tuyệt đối. |
+| **NFR-04** | **Giao diện** | Chuẩn Mobile-First Responsive từ điện thoại (375px) đến Desktop. |
+| **NFR-05** | **Tương thích** | Chạy tốt trên Chrome, Safari, Firefox, Edge phiên bản mới nhất. |
+| **NFR-06** | **Khả năng mở rộng** | Sẵn sàng mở rộng Multi-wallet, Multi-currency và nhóm chi tiêu gia đình. |
+| **NFR-07** | **Khả dụng** | Thao tác nhập giao dịch nhanh chóng dưới 10 giây; thời gian học sử dụng $< 15$ phút. |
 
 ---
 
-## 5. Đặc tả Use Case (Use Case Specification)
+## 5. Danh mục Tài liệu Kỹ thuật Liên kết
 
-### 5.1. UC-01: Thêm mới giao dịch thu/chi
-- **Use Case ID:** UC-01
-- **Tác nhân:** Người dùng (User)
-- **Mô tả:** Người dùng ghi nhận một khoản thu hoặc chi tiêu mới vào hệ thống.
-- **Điều kiện tiên quyết:** Người dùng đã đăng nhập thành công; đã có ít nhất một Ví và một Danh mục tương ứng.
-- **Hậu điều kiện:** Giao dịch mới được lưu trữ; số dư ví nguồn được cập nhật chính xác.
-- **Luồng sự kiện chính (Main Flow):**
-  1. Người dùng mở màn hình / hộp thoại “Thêm giao dịch”.
-  2. Người dùng nhập thông tin: Loại giao dịch (Thu/Chi), Số tiền, Danh mục, Ví nguồn, Thời gian, Ghi chú, tải ảnh hóa đơn (nếu có).
-  3. Người dùng nhấn nút “Lưu”.
-  4. Hệ thống kiểm tra tính hợp lệ của dữ liệu đầu vào.
-  5. Hệ thống ghi nhận giao dịch vào CSDL và tự động tính toán lại số dư của Ví nguồn:
-     - Nếu Thu: `Số dư mới = Số dư cũ + Số tiền`.
-     - Nếu Chi: `Số dư mới = Số dư cũ - Số tiền`.
-  6. Hệ thống hiển thị thông báo “Thêm giao dịch thành công” và cập nhật giao diện Dashboard.
-- **Luồng phụ / Ngoại lệ (Exceptions):**
-  - *Ngoại lệ 1:* Số tiền để trống, không phải số hoặc ≤ 0 -> Hệ thống hiển thị lỗi: *“Vui lòng nhập số tiền hợp lệ lớn hơn 0”*.
-  - *Ngoại lệ 2:* Chưa chọn danh mục hoặc ví nguồn -> Hệ thống hiển thị thông báo lỗi yêu cầu chọn đầy đủ.
-
-### 5.2. UC-02: Cập nhật thông tin giao dịch
-- **Use Case ID:** UC-02
-- **Tác nhân:** Người dùng (User)
-- **Mô tả:** Người dùng sửa đổi thông tin của một giao dịch đã lưu trong quá khứ.
-- **Điều kiện tiên quyết:** Giao dịch đã tồn tại trong tài khoản người dùng.
-- **Hậu điều kiện:** Thông tin giao dịch được cập nhật; số dư ví cũ và mới được cân đối chính xác.
-- **Luồng sự kiện chính (Main Flow):**
-  1. Người dùng chọn giao dịch cần chỉnh sửa từ màn hình Lịch sử giao dịch.
-  2. Người dùng sửa đổi các thông tin (ví dụ: đổi số tiền, đổi ví nguồn, đổi danh mục).
-  3. Người dùng nhấn nút “Lưu thay đổi”.
-  4. Hệ thống tính toán độ chênh lệch số tiền hoặc hoàn tiền ví cũ và áp dụng số tiền vào ví mới (nếu thay đổi ví).
-  5. Hệ thống lưu thay đổi vào CSDL và cập nhật số dư ví liên quan.
-  6. Hiển thị thông báo cập nhật thành công.
-- **Luồng phụ / Ngoại lệ:**
-  - Nhập số tiền mới ≤ 0 -> Hệ thống thông báo lỗi và yêu cầu nhập lại.
-
-### 5.3. UC-03: Xóa giao dịch
-- **Use Case ID:** UC-03
-- **Tác nhân:** Người dùng (User)
-- **Mô tả:** Người dùng loại bỏ một giao dịch sai khỏi hệ thống.
-- **Điều kiện tiên quyết:** Giao dịch tồn tại.
-- **Hậu điều kiện:** Bản ghi giao dịch bị xóa; số tiền trong ví được hoàn trả về trạng thái trước khi có giao dịch.
-- **Luồng sự kiện chính (Main Flow):**
-  1. Người dùng chọn thao tác “Xóa giao dịch”.
-  2. Hệ thống hiển thị hộp thoại xác nhận: *“Bạn có chắc chắn muốn xóa giao dịch này không? Số dư ví sẽ được điều chỉnh lại.”*
-  3. Người dùng chọn “Xác nhận”.
-  4. Hệ thống hoàn lại số dư ví (nếu là giao dịch Chi thì cộng lại tiền; nếu là Thu thì trừ đi).
-  5. Hệ thống xóa bản ghi giao dịch khỏi CSDL và thông báo thành công.
-- **Luồng phụ:**
-  - Tại bước 3, người dùng chọn “Hủy bỏ” -> Đóng hộp thoại, không có thay đổi nào được thực hiện.
-
-### 5.4. UC-04: Thiết lập hạn mức ngân sách
-- **Use Case ID:** UC-04
-- **Tác nhân:** Người dùng (User)
-- **Mô tả:** Người dùng cài đặt mức chi tối đa cho một danh mục trong tháng.
-- **Điều kiện tiên quyết:** Đã có danh mục chi tiêu tồn tại.
-- **Hậu điều kiện:** Hạn mức ngân sách được ghi nhận và áp dụng theo dõi cho tháng đã chọn.
-- **Luồng sự kiện chính (Main Flow):**
-  1. Người dùng truy cập màn hình “Cài đặt ngân sách”.
-  2. Chọn Danh mục chi tiêu, chọn Tháng/Năm áp dụng, nhập Số tiền hạn mức.
-  3. Nhấn nút “Lưu ngân sách”.
-  4. Hệ thống kiểm tra số tiền > 0.
-  5. Hệ thống lưu hoặc cập nhật bản ghi ngân sách trong CSDL và phản hồi thành công.
-- **Luồng phụ:**
-  - Nhập số tiền hạn mức ≤ 0 -> Hệ thống báo lỗi: *“Hạn mức ngân sách phải lớn hơn 0”*.
-
-### 5.5. UC-05: Tạo khoản nợ mới (Sổ nợ)
-- **Use Case ID:** UC-05
-- **Tác nhân:** Người dùng (User)
-- **Mô tả:** Ghi nhận một khoản nợ mới (Đi vay hoặc Cho vay).
-- **Điều kiện tiên quyết:** Người dùng đã có ít nhất một Ví thanh toán.
-- **Hậu điều kiện:** Khoản nợ được tạo lập với trạng thái `unpaid`; số dư ví nguồn biến động theo tính chất vay/cho vay.
-- **Luồng sự kiện chính (Main Flow):**
-  1. Người dùng mở màn hình Sổ nợ và nhấn “Tạo khoản nợ mới”.
-  2. Chọn Loại hình: **Đi vay** (Borrow) hoặc **Cho vay** (Lend).
-  3. Nhập: Số tiền, Tên người liên quan, Hạn trả (Due date), Ví tác động, Ghi chú.
-  4. Nhấn “Lưu”.
-  5. Hệ thống kiểm tra các trường thông tin bắt buộc.
-  6. Hệ thống lưu bản ghi khoản nợ, khởi tạo `remaining = amount`, và cập nhật số dư ví:
-     - Nếu Đi vay: Số dư ví tăng lên.
-     - Nếu Cho vay: Số dư ví giảm đi.
-  7. Hiển thị thông báo tạo khoản nợ thành công.
-- **Luồng phụ:**
-  - Bỏ trống các thông tin bắt buộc (Số tiền, Người liên quan, Ví) -> Hệ thống báo lỗi: *“Vui lòng điền đầy đủ các thông tin bắt buộc”*.
-
----
-
-## 6. Yêu cầu giao diện & Cấu trúc Dữ liệu
-
-### 6.1. Yêu cầu giao diện người dùng (UI/UX)
-- **Triết lý thiết kế:** Tối giản, thanh lịch, tập trung vào tính trực quan của số liệu và tốc độ thao tác.
-- **Bảng màu chủ đạo (Color Palette):**
-  - Màu thương hiệu chính: Xanh dương hoàng gia (`#1F4E79`).
-  - Màu nền: Trắng (`#FFFFFF`) / Nền xám nhẹ (`#F8FAFC`).
-  - Màu trạng thái: Xanh lá (`#22C55E` - Thu nhập/Ngân sách an toàn), Đỏ (`#EF4444` - Chi phí/Vượt ngân sách), Vàng cam (`#F59E0B` - Cảnh báo tiệm cận).
-- **Màn hình chính:**
-  1. **Dashboard:** Tổng quan số dư các ví, tổng thu/chi trong tháng, cảnh báo ngân sách nhanh.
-  2. **Giao dịch (Transactions):** Danh sách dòng thời gian, bộ lọc tìm kiếm và nút bấm nổi bật (FAB) tạo giao dịch nhanh.
-  3. **Ngân sách (Budgets):** Danh sách ngân sách theo danh mục với thanh tiến độ đổi màu trực quan.
-  4. **Báo cáo (Analytics):** Biểu đồ cơ cấu tròn và biểu đồ cột so sánh Thu - Chi theo tháng.
-  5. **Sổ nợ (Debts):** Quản lý danh sách các khoản vay, cho vay và lịch sử thanh toán nợ.
-  6. **Cài đặt & Danh mục:** Quản lý ví tiền, phân cấp danh mục cha - con và cấu hình tài khoản.
-
-### 6.2. Cấu trúc bảng dữ liệu (Database Tables)
-Hệ thống bao gồm 7 bảng cốt lõi:
-1. `users`: Lưu trữ thông tin tài khoản và chứng thực.
-2. `wallets`: Danh sách ví tài chính (Tiền mặt, Tài khoản ngân hàng, Ví điện tử).
-3. `categories`: Danh mục phân loại thu/chi (hỗ trợ phân cấp cha - con qua `parent_id`).
-4. `transactions`: Chi tiết các giao dịch phát sinh.
-5. `budgets`: Định mức hạn mức chi tiêu theo danh mục cho từng tháng.
-6. `debts`: Quản lý các khoản nợ vay và cho vay.
-7. `debt_payments`: Lịch sử các đợt thanh toán trả nợ cho từng khoản nợ.
-
----
-
-## 7. Kế hoạch Tích hợp hệ thống (Integration)
-
-### 7.1. Giai đoạn MVP (Hiện tại)
-- Chưa tích hợp API bên thứ ba phức tạp.
-- Sử dụng thư viện backend (như ExcelJS cho Node.js hoặc Apache POI cho Java) để xuất file Excel `.xlsx` trực tiếp từ dữ liệu hệ thống.
-- Hỗ trợ Web Push Notification hoặc Firebase Cloud Messaging (FCM) cho thông báo nhắc hẹn nợ và cảnh báo ngân sách.
-
-### 7.2. Tầm nhìn Tương lai (Future Roadmap)
-- **Open Banking & Financial Data APIs:** Kết nối với các cổng API ngân hàng để đọc biến động số dư và tự động đồng bộ hóa giao dịch.
-- **Social Login:** Tích hợp xác thực Single Sign-On (SSO) qua Google, Apple ID và Facebook (OAuth 2.0).
-- **Cloud Storage:** Lưu trữ ảnh hóa đơn chứng từ trên các giải pháp đám mây chuyên dụng (AWS S3, Google Cloud Storage, Cloudinary).
-- **AI Phân tích chi tiêu:** Trợ lý ảo gợi ý thói quen chi tiêu thông minh và dự báo chi tiêu tháng tiếp theo.
+- 📅 [Kế hoạch phân công nhiệm vụ 7 tuần](./Ke_Hoach_Phan_Cong_Nhiem_Vu.md)
+- 📋 [Product Backlog & Epics](./Product_Backlog.md)
+- 🗺️ [Bản đồ User Story Map](./User_Story_Map.md)
+- 🧪 [Kịch bản kiểm thử BDD / Gherkin](./Kich_Ban_Kiem_Thu_BDD.md)
+- ✅ [Tiêu chí chấp nhận & Kiểm thử](./Tieu_Chi_Chap_Nhan_AC_Va_Test_Design.md)
+- 🏃 [Sprint Backlog](./Sprint_Backlog.md)
+- 🗄️ [Thiết kế Cơ sở Dữ liệu & Data Dictionary](./Thiet_Ke_CSDL.md)
+- 🚀 [Đặc tả RESTful API & Kiến trúc](./Kien_Truc_Va_API.md)

@@ -1,172 +1,115 @@
 # 💰 QLchitieu - Hệ Thống Quản Lý Chi Tiêu Cá Nhân
 
 > **Dự án:** Quản lý Chi tiêu Cá nhân (Personal Expense Management)  
-> **Repository:** [https://github.com/Giang-49/QLchitieu](https://github.com/Giang-49/QLchitieu)  
-> **Phiên bản:** v1.0.0 (MVP)  
-> **Tiêu chuẩn tài liệu:** Tuân thủ chuẩn IEEE 830 (Software Requirements Specifications)
+> **Repository GitHub:** [https://github.com/Giang-49/QLchitieu](https://github.com/Giang-49/QLchitieu)  
+> **Google Sheets Kế hoạch & Backlog:** [N4_QLchitieu Google Sheet](https://docs.google.com/spreadsheets/d/1F6wNzzoMZXcfSOnE1PY7pOnpFfUA0xy1r9P4A_vtToU/edit?usp=sharing)  
+> **Tiêu chuẩn tài liệu:** IEEE Std 830-1998 & Agile Scrum Framework  
+> **Phiên bản:** v1.0.0 (MVP)
 
 ---
 
 ## 📌 1. Giới thiệu tổng quan (Introduction)
 
 ### 1.1. Mục đích
-**QLchitieu** là giải pháp phần mềm hỗ trợ người dùng cá nhân theo dõi, kiểm soát và tối ưu hóa tài chính hàng ngày một cách khoa học, trực quan và thuận tiện. Dự án đóng vai trò là cơ sở thống nhất giữa các bên liên quan (**Product Owner / BA, Developer, Tester, Stakeholder**) trong quá trình thiết kế, phát triển theo phương pháp Agile/Scrum, kiểm thử và nghiệm thu.
+**QLchitieu** là phần mềm hỗ trợ người dùng cá nhân theo dõi, kiểm soát và tối ưu hóa tài chính hàng ngày một cách khoa học, trực quan và thuận tiện. Dự án được chuẩn hóa toàn diện dựa trên tài liệu **N4_QLchitieu** bao gồm 7 phân hệ tri thức tương ứng với các sheet:
+1. **Nhiệm vụ:** Phân công chi tiết 7 tuần cho 3 vai trò (BA/Scrum Master, Frontend Dev, Backend Dev + QA).
+2. **Product Backlog:** 17 User Stories (US1.1 – US5.4) thuộc 5 Epics, phân bổ theo 3 Sprints (P1, P2, P3).
+3. **User Story Map:** Bản đồ lộ trình tính năng phân cấp theo MoSCoW (Must-Have, Should-Have, Nice-to-Have).
+4. **Kịch bản kiểm thử (BDD):** Kịch bản hành vi Given - When - Then - And cho mọi luồng chính và ngoại lệ.
+5. **Tiêu chí chấp nhận (AC):** Tiêu chuẩn nghiệm thu chi tiết từng User Story.
+6. **Theme & Epics:** Cấu trúc phân cấp Theme -> 5 Epics -> User Stories.
+7. **Sprint Backlog:** Phân rã công việc kỹ thuật, estimation và tiêu chí hoàn thành từng Sprint.
 
 ### 1.2. Mục tiêu kinh doanh
 - **Kiểm soát dòng tiền:** Giúp người dùng nắm bắt chính xác dòng tiền vào/ra theo thời gian thực.
-- **Kỷ luật tài chính:** Thiết lập hạn mức ngân sách cho từng danh mục, tự động cảnh báo nguy cơ bội chi.
+- **Kỷ luật tài chính:** Thiết lập hạn mức ngân sách cho từng danh mục, tự động cảnh báo nguy cơ bội chi (ngưỡng 80% và 100%).
 - **Quản lý công nợ minh bạch:** Ghi nhận chi tiết các khoản vay/cho vay, theo dõi tiến độ hoàn trả và nhắc hẹn tự động.
-- **Báo cáo trực quan:** Trực quan hóa số liệu qua biểu đồ cơ cấu và xu hướng thu chi, hỗ trợ ra quyết định tài chính cá nhân.
+- **Báo cáo trực quan:** Trực quan hóa số liệu qua biểu đồ cơ cấu tròn và xu hướng thu chi 6 - 12 tháng, hỗ trợ xuất Excel.
 
-### 1.3. Phạm vi dự án (Scope)
+---
+
+## 🗺️ 2. Bản đồ Tính năng & User Story Map (MoSCoW Matrix)
 
 ```mermaid
-graph TD
-    subgraph IN_SCOPE["Trong phạm vi (In-Scope - MVP)"]
-        A[Ghi nhận & Quản lý Thu/Chi hàng ngày]
-        B[Phân loại Danh mục & Quản lý Ví nguồn tiền]
-        C[Thiết lập Ngân sách & Cảnh báo vượt ngưỡng]
-        D[Báo cáo thống kê biểu đồ & Xuất Excel]
-        E[Sổ nợ - Quản lý Vay & Cho vay]
-    end
-    
-    subgraph OUT_SCOPE["Ngoài phạm vi (Out-of-Scope - Giai đoạn sau)"]
-        F[Phân quyền tổ chức / Doanh nghiệp phức tạp]
-        G[Open Banking / Tự động đồng bộ số dư ngân hàng]
-        H[Đầu tư chứng khoán, tiền ảo, mục tiêu tiết kiệm đa tầng]
+graph TB
+    subgraph MUST_HAVE["SPRINT 1 - MVP (MUST-HAVE / BẮT BUỘC)"]
+        direction TB
+        M1["• US1.1: Thêm giao dịch mới<br/>• US1.2: Sửa giao dịch<br/>• US1.3: Xóa giao dịch<br/>• US1.4: Xem theo danh mục"]
+        M2["• US2.1: Cài đặt hạn mức tháng<br/>• US2.3: Cảnh báo vượt ngưỡng"]
+        M4["• US4.1: Tạo danh mục thu/chi<br/>• US4.2: Ẩn danh mục & bảo lưu"]
+        M5["• US5.1: Ghi nhận nợ mới<br/>• US5.2: Cập nhật trả nợ<br/>• US5.3: Xem sổ nợ theo trạng thái"]
     end
 
-    style IN_SCOPE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    style OUT_SCOPE fill:#ffebee,stroke:#c62828,stroke-width:2px;
-```
+    subgraph SHOULD_HAVE["SPRINT 2 (SHOULD-HAVE - 19 STORY POINTS)"]
+        direction TB
+        S2["• US2.2: Hiển thị tiến độ ngân sách (Xanh/Vàng/Đỏ)"]
+        S3["• US3.1: Biểu đồ tròn cơ cấu<br/>• US3.2: Biểu đồ cột Thu vs Chi"]
+        S4["• US4.3: Quản lý danh mục cha - con"]
+    end
 
-### 1.4. Đối tượng sử dụng
+    subgraph NICE_HAVE["SPRINT 3 (NICE-TO-HAVE / NÂNG CAO)"]
+        direction TB
+        N3["• US3.3: Xuất báo cáo Excel/CSV"]
+        N5["• US5.4: Thông báo nhắc hẹn trả/thu nợ"]
+    end
 
-| Vai trò | Trách nhiệm & Mục đích sử dụng |
-| :--- | :--- |
-| **Người dùng cuối (End-user)** | Cá nhân muốn theo dõi thu nhập, chi tiêu, quản lý ngân sách và sổ nợ hàng ngày. |
-| **BA / Scrum Master** | Phân tích yêu cầu, quản lý Product Backlog, User Story Map và nghiệm thu tính năng. |
-| **Developer (FE/BE)** | Thiết kế kiến trúc, phát triển RESTful API và giao diện Mobile-first Responsive. |
-| **Tester / QA** | Thiết kế test scenario, viết test case chi tiết và kiểm thử chức năng/phi chức năng. |
-
----
-
-## 🏗️ 2. Kiến trúc & Công nghệ đề xuất (Tech Stack & Architecture)
-
-```mermaid
-graph LR
-    Client["Client (Mobile-first Web)<br/>React / Vue / Next.js<br/>TailwindCSS & Chart.js"]
-    API["Backend REST API<br/>Node.js (Express/NestJS) hoặc Java Spring / Python"]
-    DB[("Cơ sở dữ liệu Quan hệ<br/>PostgreSQL / MySQL")]
-    Storage["File / Cloud Storage<br/>Hóa đơn & Ảnh giao dịch"]
-    Export["Excel Export Service<br/>ExcelJS / Apache POI"]
-
-    Client <-->|REST API / HTTPS| API
-    API <--> DB
-    API <--> Storage
-    API --> Export
-```
-
-- **Mô hình kiến trúc:** Client - Server qua giao thức RESTful API.
-- **Frontend:** Responsive Web ưu tiên **Mobile-First**, tông màu chủ đạo Xanh dương (`#1F4E79`) & Trắng, hỗ trợ Dark Mode. Thư viện biểu đồ: **Chart.js** hoặc **ApexCharts**.
-- **Backend:** Kiến trúc hướng dịch vụ (Service-Oriented), xác thực người dùng qua JWT/OAuth2.
-- **Database:** RDBMS (MySQL 8.0+ hoặc PostgreSQL 14+).
-
----
-
-## 🎯 3. Các Epic & Yêu cầu chức năng (Functional Requirements)
-
-### 📊 Bảng tổng hợp các Epic chức năng
-
-```mermaid
-mindmap
-  root((Hệ thống QLchitieu))
-    Epic 01: Quản lý Thu Chi
-      FR-01.1: Thêm mới giao dịch
-      FR-01.2: Cập nhật giao dịch
-      FR-01.3: Xóa giao dịch
-      FR-01.4: Xem, lọc & tìm kiếm
-    Epic 02: Hạn mức Ngân sách
-      FR-02.1: Thiết lập ngân sách
-      FR-02.2: Theo dõi tiến độ sử dụng
-      FR-02.3: Cảnh báo bội chi
-    Epic 03: Báo cáo Thống kê
-      FR-03.1: Biểu đồ cơ cấu tròn
-      FR-03.2: Biểu đồ so sánh Thu/Chi
-      FR-03.3: Xuất báo cáo Excel
-    Epic 04: Quản lý Danh mục
-      FR-04.1: Tạo / Sửa danh mục
-      FR-04.2: Xóa / Ẩn danh mục
-      FR-04.3: Danh mục đa cấp Cha - Con
-    Epic 05: Sổ nợ Vay / Cho vay
-      FR-05.1: Tạo khoản nợ mới
-      FR-05.2: Ghi nhận trả nợ từng phần/toàn bộ
-      FR-05.3: Phân loại trạng thái sổ nợ
-      FR-05.4: Nhắc hẹn hạn nợ
+    style MUST_HAVE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    style SHOULD_HAVE fill:#fff8e1,stroke:#f57f17,stroke-width:2px;
+    style NICE_HAVE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
 ```
 
 ---
 
-### Chi tiết các Epic
+## 🎯 3. Danh mục 5 Epics & 17 User Stories
 
-#### 💳 Epic 01: Quản lý giao dịch thu chi
-- **FR-01.1 - Thêm mới giao dịch:** Cho phép người dùng nhập giao dịch Thu/Chi với: Số tiền (> 0), Loại, Danh mục, Ví thanh toán, Ngày, Ghi chú, Ảnh hóa đơn đính kèm. Tự động cập nhật số dư ví tức thời.
-- **FR-01.2 - Cập nhật giao dịch:** Hỗ trợ chỉnh sửa thông tin giao dịch đã tạo. Hệ thống tự động tính chênh lệch số tiền và điều chỉnh số dư ví chính xác.
-- **FR-01.3 - Xóa giao dịch:** Xóa giao dịch kèm cảnh báo xác nhận; hoàn trả lại số dư ví ban đầu.
-- **FR-01.4 - Xem, lọc & tìm kiếm:** Dòng thời gian (Timeline) sắp xếp giảm dần theo thời gian; hỗ trợ lọc theo ví, danh mục, khoảng ngày và tìm kiếm từ khóa trong ghi chú.
-
-#### 🎯 Epic 02: Quản lý hạn mức ngân sách
-- **FR-02.1 - Thiết lập hạn mức:** Đặt định mức chi tiêu tối đa cho từng danh mục theo tháng (Số tiền hạn mức > 0).
-- **FR-02.2 - Theo dõi tiến độ:** Thanh tiến độ trực quan hiển thị tỷ lệ % đã chi:
-  - 🟢 `< 70%`: Mức an toàn (Xanh lá).
-  - 🟡 `70% - 99%`: Cảnh báo tiệm cận (Vàng cam).
-  - 🔴 `≥ 100%`: Vượt ngân sách (Đỏ cảnh báo).
-- **FR-02.3 - Cảnh báo vượt ngưỡng:** Tự động kích hoạt thông báo trên giao diện và đẩy Push Notification khi đạt mốc **80%** và **100%** hạn mức.
-
-#### 📈 Epic 03: Báo cáo & Thống kê chi tiêu
-- **FR-03.1 - Biểu đồ tròn cơ cấu chi tiêu:** Hiển thị tỷ trọng chi tiêu của các danh mục theo khoảng thời gian tùy chọn (Tuần/Tháng/Năm).
-- **FR-03.2 - Biểu đồ so sánh Thu vs Chi:** Biểu đồ cột thể hiện tương quan dòng tiền vào và ra theo từng tháng trong năm, hỗ trợ tooltip chi tiết khi tương tác.
-- **FR-03.3 - Xuất báo cáo Excel:** Xuất file `.xlsx` danh sách giao dịch với đầy đủ các trường: Ngày, Loại, Danh mục, Số tiền, Ví nguồn, Ghi chú.
-
-#### 📂 Epic 04: Quản lý danh mục thu chi
-- **FR-04.1 - Tạo & Sửa danh mục:** Đặt tên, chọn icon biểu tượng, gán nhãn màu sắc và phân loại (Thu nhập / Chi phí).
-- **FR-04.2 - Xóa / Ẩn danh mục:** Đảm bảo toàn vẹn dữ liệu: Khi xóa danh mục đã có giao dịch, bắt buộc người dùng chọn danh mục thay thế để chuyển đổi.
-- **FR-04.3 - Danh mục Cha - Con:** Hỗ trợ phân cấp cây danh mục để quản lý chi tiêu sâu (VD: `Ăn uống` -> `Cà phê`, `Ăn ngoài`, `Đi chợ`).
-
-#### 🤝 Epic 05: Quản lý hồ sơ vay & Sổ nợ
-- **FR-05.1 - Tạo khoản nợ:** Ghi nhận khoản `Vay` (mình đi vay) hoặc `Cho vay` (người khác vay mình): Người liên quan, Số tiền, Hạn trả, Ví tác động, Ghi chú.
-- **FR-05.2 - Ghi nhận thanh toán:** Hỗ trợ trả nợ một phần hoặc tất toán toàn bộ. Tự động trừ số nợ còn lại và cập nhật ví; không cho phép thanh toán vượt số tiền nợ.
-- **FR-05.3 - Phân loại trạng thái:** Quản lý theo các tab: *Chưa thanh toán*, *Đã hoàn tất*, *Quá hạn*.
-- **FR-05.4 - Nhắc hẹn:** Tự động gửi thông báo khi đến ngày đáo hạn trả nợ hoặc đòi nợ.
+| Epic | Mã US | Tóm tắt tính năng | Câu User Story | Sprint |
+| :--- | :---: | :--- | :--- | :---: |
+| **Epic 01: Quản lý giao dịch thu chi** | **US1.1** | Thêm giao dịch mới | Là người dùng, tôi muốn thêm mới giao dịch thu/chi (số tiền, loại, danh mục, ví, ghi chú, ảnh hóa đơn) để ghi nhận biến động số dư chính xác. | **P1** |
+| | **US1.2** | Sửa giao dịch | Là người dùng, tôi muốn cập nhật thông tin giao dịch để sửa sai sót. | **P1** |
+| | **US1.3** | Xóa giao dịch | Là người dùng, tôi muốn xóa giao dịch và hệ thống tự động hoàn lại số dư ví. | **P1** |
+| | **US1.4** | Xem theo danh mục | Là người dùng, tôi muốn xem danh sách giao dịch theo danh mục để tra cứu lịch sử chi tiêu. | **P1** |
+| **Epic 02: Quản lý hạn mức ngân sách** | **US2.1** | Cài đặt ngân sách tháng | Là một người dùng, tôi muốn thiết lập hạn mức ngân sách chi tiêu cho từng danh mục để không bị chi tiêu quá tay trong tháng. | **P1** |
+| | **US2.2** | Tiến độ sử dụng ngân sách | Là một người dùng, tôi muốn theo dõi thanh tiến độ sử dụng ngân sách để biết tỷ lệ % hạn mức đã tiêu dùng. | **P2** |
+| | **US2.3** | Cảnh báo vượt ngưỡng | Là một người dùng, tôi muốn nhận thông báo cảnh báo khi chi tiêu sắp chạm ngưỡng hạn mức để kịp thời điều chỉnh. | **P1** |
+| **Epic 03: Báo cáo thống kê chi tiêu** | **US3.1** | Biểu đồ tròn cơ cấu | Là một người dùng, tôi muốn xem biểu đồ tròn phân tích cơ cấu chi tiêu để biết nhóm chi phí nào chiếm tỷ trọng lớn nhất. | **P2** |
+| | **US3.2** | Biểu đồ cột Thu vs Chi | Là một người dùng, tôi muốn xem biểu đồ so sánh tổng thu và tổng chi qua các tháng để đánh giá khả năng tiết kiệm ròng. | **P2** |
+| | **US3.3** | Xuất báo cáo Excel | Là một người dùng, tôi muốn xuất báo cáo danh sách giao dịch ra file Excel để lưu trữ hoặc phân tích chuyên sâu. | **P3** |
+| **Epic 04: Quản lý danh mục thu chi** | **US4.1** | Tạo danh mục thu/chi | Là một người dùng, tôi muốn tạo mới danh mục thu/chi (tên, biểu tượng, loại thu/chi) để cá nhân hóa phân loại giao dịch. | **P1** |
+| | **US4.2** | Ẩn danh mục & bảo lưu | Là một người dùng, tôi muốn xóa mục không dùng nữa kèm lựa chọn chuyển giao dịch cũ sang danh mục khác để bảo toàn lịch sử. | **P1** |
+| | **US4.3** | Danh mục cha - con | Là một người dùng, tôi muốn tạo các danh mục con trực thuộc danh mục cha để quản lý chi tiêu chi tiết theo từng nhóm nhỏ. | **P2** |
+| **Epic 05: Quản lý hồ sơ vay (Sổ nợ)** | **US5.1** | Ghi nhận khoản nợ mới | Là một người dùng, tôi muốn tạo khoản nợ mới (cho vay hoặc đi vay) gồm số tiền, người vay/cho vay, ngày hẹn trả để theo dõi công nợ. | **P1** |
+| | **US5.2** | Cập nhật trả nợ | Là một người dùng, tôi muốn ghi nhận trả nợ từng phần hoặc tất toán để hệ thống cập nhật số dư nợ còn lại. | **P1** |
+| | **US5.3** | Sổ nợ theo trạng thái | Là một người dùng, tôi muốn xem danh sách các khoản nợ phân loại rõ ràng (chưa thanh toán, đã hoàn tất, quá hạn). | **P1** |
+| | **US5.4** | Nhắc hẹn trả/thu hồi nợ | Là một người dùng, tôi muốn nhận thông báo nhắc nhở khi đến ngày hẹn trả/đòi nợ để tránh việc trễ hạn. | **P3** |
 
 ---
 
-## 🗄️ 4. Thiết kế Cơ sở Dữ liệu (Database Schema)
+## 🗄️ 4. Sơ đồ Cơ sở Dữ liệu (Database ERD)
 
 ```mermaid
 erDiagram
-    USERS ||--o{ WALLETS : owns
-    USERS ||--o{ CATEGORIES : configures
-    USERS ||--o{ TRANSACTIONS : creates
-    USERS ||--o{ BUDGETS : defines
-    USERS ||--o{ DEBTS : tracks
-    
-    WALLETS ||--o{ TRANSACTIONS : balances
-    WALLETS ||--o{ DEBTS : impacts
-    WALLETS ||--o{ DEBT_PAYMENTS : funds
+    USERS ||--o{ WALLETS : "sở hữu (1:N)"
+    USERS ||--o{ CATEGORIES : "quản lý (1:N)"
+    USERS ||--o{ TRANSACTIONS : "thực hiện (1:N)"
+    USERS ||--o{ BUDGETS : "thiết lập (1:N)"
+    USERS ||--o{ DEBTS : "theo dõi (1:N)"
 
-    CATEGORIES ||--o{ TRANSACTIONS : categorizes
-    CATEGORIES ||--o{ BUDGETS : targets
-    CATEGORIES ||--o{ CATEGORIES : "parent-child"
+    WALLETS ||--o{ TRANSACTIONS : "nguồn tiền (1:N)"
+    WALLETS ||--o{ DEBTS : "ảnh hưởng (1:N)"
+    WALLETS ||--o{ DEBT_PAYMENTS : "thanh toán (1:N)"
 
-    DEBTS ||--o{ DEBT_PAYMENTS : has
+    CATEGORIES ||--o{ TRANSACTIONS : "phân loại (1:N)"
+    CATEGORIES ||--o{ BUDGETS : "áp dụng (1:N)"
+    CATEGORIES ||--o{ CATEGORIES : "cha - con (1:N)"
+
+    DEBTS ||--o{ DEBT_PAYMENTS : "lịch sử trả (1:N)"
 
     USERS {
         bigint id PK
-        string email
+        string email UK
         string password_hash
         string name
-        datetime created_at
+        timestamp created_at
     }
 
     WALLETS {
@@ -175,6 +118,7 @@ erDiagram
         string name
         decimal balance
         string type "cash | bank | ewallet"
+        string currency "VND"
     }
 
     CATEGORIES {
@@ -185,6 +129,7 @@ erDiagram
         string color
         string type "income | expense"
         bigint parent_id FK
+        boolean is_active
     }
 
     TRANSACTIONS {
@@ -194,9 +139,9 @@ erDiagram
         bigint category_id FK
         string type "income | expense"
         decimal amount
-        string note
+        text note
         string image_url
-        datetime date
+        datetime transaction_date
     }
 
     BUDGETS {
@@ -211,6 +156,7 @@ erDiagram
     DEBTS {
         bigint id PK
         bigint user_id FK
+        bigint wallet_id FK
         string type "lend | borrow"
         string person_name
         decimal amount
@@ -224,63 +170,41 @@ erDiagram
         bigint debt_id FK
         bigint wallet_id FK
         decimal amount
+        text note
         datetime paid_at
     }
 ```
 
 ---
 
-## ⚡ 5. Yêu cầu phi chức năng (Non-Functional Requirements)
+## 📚 5. Hệ thống Tri thức Chi tiết (Knowledge Base Links)
 
-| Mã số | Phân loại | Tiêu chuẩn chất lượng yêu cầu |
-| :--- | :--- | :--- |
-| **NFR-01** | **Hiệu năng (Performance)** | Thời gian tải danh sách giao dịch ≤ 2.0 giây với 1.000 bản ghi dữ liệu. |
-| **NFR-02** | **Độ sẵn sàng (Availability)** | Thời gian hoạt động (Uptime) đạt ≥ 99% trong giờ sử dụng thông thường. |
-| **NFR-03** | **Bảo mật (Security)** | Mật khẩu băm an toàn (Argon2/Bcrypt); toàn bộ API yêu cầu xác thực JWT qua HTTPS; cô lập dữ liệu người dùng tuyệt đối. |
-| **NFR-04** | **Giao diện (UI/UX)** | Thiết kế Mobile-First, chuẩn Responsive trên thiết bị di động, tablet và desktop. |
-| **NFR-05** | **Tương thích (Compatibility)** | Hoạt động mượt mà trên phiên bản mới nhất của Chrome, Safari, Firefox, Edge. |
-| **NFR-06** | **Khả năng mở rộng (Scalability)** | Thiết kế sẵn sàng cho kiến trúc Multi-wallet, Multi-currency và liên kết tài khoản gia đình. |
-| **NFR-07** | **Khả dụng (Usability)** | Giao diện thân thiện, tối giản, người dùng làm quen và thao tác thành thạo trong vòng < 15 phút. |
+Toàn bộ các tài liệu chuyên sâu được chuẩn hóa tương ứng trực tiếp với các sheet từ Google Sheet:
 
----
-
-## 📖 6. Danh mục tài liệu tham khảo & Tri thức chi tiết
-
-Tất cả các tài liệu kỹ thuật chi tiết đã được chuẩn hóa và lưu trữ tại thư mục [`docs/`](./docs/):
-
-1. 📄 [**Đặc tả Yêu cầu Phần mềm (SRS Chi tiết)**](./docs/SRS_Dac_Ta_Yeu_Cau.md) - Đặc tả hoàn chỉnh theo chuẩn IEEE 830.
-2. 🗄️ [**Thiết kế Cơ sở Dữ liệu & DDL Scripts**](./docs/Thiet_Ke_CSDL.md) - Mô tả chi tiết schema, chỉ mục (indexes), ràng buộc và mã SQL khởi tạo.
-3. 📋 [**Đặc tả Use Case & Luồng Nghiệp vụ**](./docs/Dac_Ta_Use_Cases.md) - Phân tích chi tiết 5 use case trọng tâm, luồng chính, luồng phụ và biệt lệ.
-4. 🚀 [**Đặc tả API & Kiến trúc Hệ thống**](./docs/Kien_Truc_Va_API.md) - Thiết kế endpoint RESTful API, mã trạng thái và mẫu Request/Response.
+1. 📅 [**Kế hoạch phân công nhiệm vụ 7 tuần** (Sheet: *nhiệm vụ*)](./docs/Ke_Hoach_Phan_Cong_Nhiem_Vu.md) - Chi tiết từng tuần cho BA, Frontend Dev, Backend Dev.
+2. 📋 [**Product Backlog & Epics** (Sheet: *product backlog* & *theme*)](./docs/Product_Backlog.md) - Chi tiết 17 User Story, Sprint phân bổ, Epic Big User Story.
+3. 🗺️ [**Bản đồ User Story Map** (Sheet: *map*)](./docs/User_Story_Map.md) - Ma trận phân loại MoSCoW và phân kỳ Sprints.
+4. 🧪 [**Kịch bản kiểm thử BDD / Gherkin** (Sheet: *kịch bản*)](./docs/Kich_Ban_Kiem_Thu_BDD.md) - Toàn bộ Scenario Given - When - Then - And cho 17 User Stories.
+5. ✅ [**Tiêu chí chấp nhận & Kiểm thử** (Sheet: *tiêu chí chấp nhận& kiểm thử*)](./docs/Tieu_Chi_Chap_Nhan_AC_Va_Test_Design.md) - Bộ Acceptance Criteria chuẩn hóa.
+6. 🏃 [**Sprint Backlog** (Sheet: *sprint backlog*)](./docs/Sprint_Backlog.md) - Phân rã kỹ thuật Sprint 1 (Core CRUD), Sprint 2 (Ngân sách & Biểu đồ - 19 SP), Sprint 3 (Excel & Nhắc nợ).
+7. 📄 [**Tài liệu SRS Đặc tả Yêu cầu Phần mềm**](./docs/SRS_Dac_Ta_Yeu_Cau.md) - Tài liệu SRS hoàn chỉnh theo chuẩn IEEE 830.
+8. 🗄️ [**Thiết kế Cơ sở Dữ liệu & Data Dictionary**](./docs/Thiet_Ke_CSDL.md) - Mô tả chi tiết schema, chỉ mục và kiểu dữ liệu.
+9. 🚀 [**Đặc tả RESTful API & Kiến trúc**](./docs/Kien_Truc_Va_API.md) - Chi tiết các endpoint, authentication JWT và Request/Response payload.
 
 ---
 
-## 🛠️ 7. Hướng dẫn phát triển (Development Guide)
+## 🐳 6. Khởi chạy CSDL & Môi trường Thử nghiệm
 
-### 7.1. Cấu trúc thư mục dự án
+Dự án cung cấp sẵn tệp [`docker-compose.yml`](./docker-compose.yml) giúp khởi tạo tức thời CSDL MySQL 8.0 và phpMyAdmin đã tự động nạp sẵn cấu trúc bảng ([`schema.sql`](./database/schema.sql)) và dữ liệu mẫu ([`seed_data.sql`](./database/seed_data.sql)):
 
-```text
-QLchitieu/
-├── docs/                      # Tài liệu tri thức dự án
-│   ├── SRS_Dac_Ta_Yeu_Cau.md  # Tài liệu SRS đầy đủ
-│   ├── Thiet_Ke_CSDL.md       # Thiết kế CSDL & Script SQL
-│   ├── Dac_Ta_Use_Cases.md    # Chi tiết đặc tả Use Case
-│   └── Kien_Truc_Va_API.md    # Đặc tả REST API & Kiến trúc
-├── src/                       # Mã nguồn dự án (sau khi triển khai)
-│   ├── backend/               # Server API service
-│   └── frontend/              # Ứng dụng Web / Mobile
-├── database/                  # File migration & seed dữ liệu
-│   └── schema.sql             # SQL Script tạo bảng
-└── README.md                  # Tài liệu tổng quan dự án
+```bash
+# Khởi chạy MySQL và phpMyAdmin trong chế độ nền
+docker compose up -d
+
+# Truy cập giao diện quản trị phpMyAdmin
+# URL: http://localhost:8080
+# Tài khoản: root / rootpassword
 ```
 
-### 7.2. Lộ trình triển khai (Roadmap)
-- [x] **Sprint 0:** Thu thập yêu cầu, hoàn thiện tài liệu SRS, thiết kế CSDL và kiến trúc API.
-- [ ] **Sprint 1 (Core):** Xác thực tài khoản, Quản lý Ví và Quản lý Danh mục (Epic 04).
-- [ ] **Sprint 2 (Transactions):** Quản lý Giao dịch Thu/Chi (Epic 01) & Tự động tính toán số dư.
-- [ ] **Sprint 3 (Budget & Debts):** Quản lý Ngân sách (Epic 02) & Quản lý Sổ nợ (Epic 05).
-- [ ] **Sprint 4 (Analytics & Export):** Báo cáo thống kê biểu đồ & Xuất dữ liệu Excel (Epic 03).
-- [ ] **Sprint 5 (Hardening):** Kiểm thử chấp nhận người dùng (UAT), tối ưu hiệu năng và triển khai.
-
 ---
-*Tài liệu được biên soạn và bảo trì bởi đội ngũ dự án QLchitieu.*
+*Dự án Quản lý Chi tiêu Cá nhân - Nhóm N4_QLchitieu*
