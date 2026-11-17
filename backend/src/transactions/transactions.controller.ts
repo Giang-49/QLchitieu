@@ -1,23 +1,25 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UsePipes, ValidationPipe, UseGuards, Request } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('transactions')
+@UseGuards(JwtAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) { }
 
   // 1. TẠO GIAO DỊCH
   @Post()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  create(@Body() createTransactionDto: CreateTransactionDto) {
-    // Tạm thời gán hardcode userId = 1 cho việc test API (Sau này sẽ lấy từ JWT Token)
-    const userId = 1;
-    return this.transactionsService.create(userId, createTransactionDto);
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  create(@Request() req: any, @Body() createTransactionDto: CreateTransactionDto) {
+    return this.transactionsService.create(req.user.id, createTransactionDto);
   }
 
   // 2. LẤY DANH SÁCH (Đã bổ sung các Query params để nhận bộ lọc từ URL)
   @Get()
   findAll(
+    @Request() req: any,
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('wallet_id') wallet_id: string,
@@ -27,30 +29,26 @@ export class TransactionsController {
     @Query('type') type: string,
     @Query('search') search: string,
   ) {
-    const userId = 1;
     const filters = { page, limit, wallet_id, category_id, from_date, to_date, type, search };
-    return this.transactionsService.findAll(userId, filters);
+    return this.transactionsService.findAll(req.user.id, filters);
   }
 
   // 3. XEM CHI TIẾT
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    const userId = 1;
-    return this.transactionsService.findOne(+id, userId);
+  findOne(@Request() req: any, @Param('id') id: string) {
+    return this.transactionsService.findOne(+id, req.user.id);
   }
 
   // 4. SỬA GIAO DỊCH (Bổ sung phương thức PUT theo đúng thiết kế API)
   @Put(':id')
-  @UsePipes(new ValidationPipe({ transform: true }))
-  update(@Param('id') id: string, @Body() updateData: any) {
-    const userId = 1;
-    return this.transactionsService.update(+id, userId, updateData);
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  update(@Request() req: any, @Param('id') id: string, @Body() updateData: UpdateTransactionDto) {
+    return this.transactionsService.update(+id, req.user.id, updateData);
   }
 
   // 5. XÓA GIAO DỊCH
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    const userId = 1;
-    return this.transactionsService.remove(+id, userId);
+  remove(@Request() req: any, @Param('id') id: string) {
+    return this.transactionsService.remove(+id, req.user.id);
   }
 }

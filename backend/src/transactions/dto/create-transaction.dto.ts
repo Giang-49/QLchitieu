@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional, IsDateString, IsPositive, IsIn } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber({}, { message: 'wallet_id phải là số' })
@@ -10,10 +10,12 @@ export class CreateTransactionDto {
   category_id: number;
 
   @IsString()
+  @IsIn(['income', 'expense'], { message: 'Loại giao dịch phải là income hoặc expense' })
   @IsNotEmpty({ message: 'Loại giao dịch (type) không được để trống' })
   type: string; // 'income' hoặc 'expense'
 
   @IsNumber({}, { message: 'Số tiền (amount) phải là số' })
+  @IsPositive({ message: 'Số tiền phải lớn hơn 0' })
   @IsNotEmpty({ message: 'Số tiền không được để trống' })
   amount: number;
 

@@ -18,6 +18,14 @@ export class TransactionsService {
       throw new BadRequestException('Ví nguồn không tồn tại hoặc không hợp lệ.');
     }
 
+    const category = await this.prisma.category.findFirst({
+      where: { id: BigInt(category_id), user_id: BigInt(userId), is_active: true },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Danh mục không tồn tại hoặc đã bị ẩn.');
+    }
+
     try {
       const result = await this.prisma.$transaction(async (prisma) => {
         const newTransaction = await prisma.transaction.create({
@@ -30,6 +38,10 @@ export class TransactionsService {
             note,
             image_url,
             transaction_date: new Date(transaction_date),
+          },
+          include: {
+            category: true,
+            wallet: true,
           },
         });
 
@@ -45,10 +57,62 @@ export class TransactionsService {
         return newTransaction;
       });
 
+      // US2.3: Kiểm tra cảnh báo ngân sách khi thêm giao dịch chi tiêu mới
+      let budgetAlert = null;
+      if (type === 'expense') {
+        const txDate = new Date(transaction_date);
+        const m = txDate.getMonth() + 1;
+        const y = txDate.getFullYear();
+        const budget = await this.prisma.budget.findFirst({
+          where: {
+            user_id: BigInt(userId),
+            category_id: BigInt(category_id),
+            month: m,
+            year: y,
+          },
+        });
+
+        if (budget) {
+          const spentResult = await this.prisma.transaction.aggregate({
+            where: {
+              user_id: BigInt(userId),
+              category_id: BigInt(category_id),
+              type: 'expense',
+              transaction_date: {
+                gte: new Date(y, m - 1, 1),
+                lt: new Date(y, m, 1),
+              },
+            },
+            _sum: { amount: true },
+          });
+
+          const totalSpent = Number(spentResult._sum.amount || 0);
+          const budgetAmount = Number(budget.amount);
+          const pct = budgetAmount > 0 ? (totalSpent / budgetAmount) * 100 : 0;
+
+          if (pct >= 100) {
+            budgetAlert = {
+              level: 'danger',
+              message: `Bạn đã bội chi ngân sách danh mục ${category.name}`,
+              percentage: Math.round(pct),
+            };
+          } else if (pct >= 80) {
+            budgetAlert = {
+              level: 'warning',
+              message: `Bạn đã sử dụng ${Math.round(pct)}% ngân sách danh mục ${category.name}`,
+              percentage: Math.round(pct),
+            };
+          }
+        }
+      }
+
       return {
         success: true,
         message: 'Thêm giao dịch thành công',
-        data: this.formatBigInt(result),
+        data: {
+          ...this.formatBigInt(result),
+          budget_alert: budgetAlert,
+        },
       };
     } catch (error: any) {
       throw new BadRequestException(`Lỗi khi thêm giao dịch: ${error.message}`);
@@ -84,6 +148,10 @@ export class TransactionsService {
         skip: skip,
         take: limit,
         orderBy: { transaction_date: 'desc' },
+        include: {
+          category: true,
+          wallet: true,
+        },
       }),
       this.prisma.transaction.count({ where: whereCondition }),
     ]);
@@ -103,6 +171,10 @@ export class TransactionsService {
   async findOne(id: number, userId: number) {
     const transaction = await this.prisma.transaction.findFirst({
       where: { id: BigInt(id), user_id: BigInt(userId) },
+      include: {
+        category: true,
+        wallet: true,
+      },
     });
 
     if (!transaction) {
@@ -120,6 +192,13 @@ export class TransactionsService {
 
     if (!oldTransaction) throw new NotFoundException('Giao dịch không tồn tại.');
 
+    if (updateData.category_id) {
+      const cat = await this.prisma.category.findFirst({
+        where: { id: BigInt(updateData.category_id), user_id: BigInt(userId), is_active: true },
+      });
+      if (!cat) throw new BadRequestException('Danh mục mới không tồn tại hoặc đã bị ẩn.');
+    }
+
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: oldTransaction.wallet_id },
     });
@@ -128,37 +207,67 @@ export class TransactionsService {
 
     try {
       const result = await this.prisma.$transaction(async (prisma) => {
-        let newBalance = Number(wallet.balance);
         const oldAmount = Number(oldTransaction.amount);
         const newAmount = updateData.amount ? Number(updateData.amount) : oldAmount;
         const newType = updateData.type || oldTransaction.type;
         const oldType = oldTransaction.type;
+        const targetWalletId = updateData.wallet_id ? BigInt(updateData.wallet_id) : oldTransaction.wallet_id;
 
-        // Hoàn tác số tiền cũ
-        if (oldType === 'expense') newBalance += oldAmount;
-        if (oldType === 'income') newBalance -= oldAmount;
+        if (targetWalletId === oldTransaction.wallet_id) {
+          let newBalance = Number(wallet.balance);
+          // Hoàn tác số tiền cũ
+          if (oldType === 'expense') newBalance += oldAmount;
+          if (oldType === 'income') newBalance -= oldAmount;
 
-        // Áp dụng số tiền mới
-        if (newType === 'expense') newBalance -= newAmount;
-        if (newType === 'income') newBalance += newAmount;
+          // Áp dụng số tiền mới
+          if (newType === 'expense') newBalance -= newAmount;
+          if (newType === 'income') newBalance += newAmount;
 
-        // Cập nhật ví
-        await prisma.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: newBalance },
-        });
+          // Cập nhật ví
+          await prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: newBalance },
+          });
+        } else {
+          const targetWallet = await prisma.wallet.findFirst({
+            where: { id: targetWalletId, user_id: BigInt(userId) },
+          });
+          if (!targetWallet) throw new NotFoundException('Ví mới không tồn tại.');
+
+          // Hoàn tác ví cũ
+          let oldWalletBalance = Number(wallet.balance);
+          if (oldType === 'expense') oldWalletBalance += oldAmount;
+          if (oldType === 'income') oldWalletBalance -= oldAmount;
+          await prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: oldWalletBalance },
+          });
+
+          // Áp dụng ví mới
+          let targetWalletBalance = Number(targetWallet.balance);
+          if (newType === 'expense') targetWalletBalance -= newAmount;
+          if (newType === 'income') targetWalletBalance += newAmount;
+          await prisma.wallet.update({
+            where: { id: targetWallet.id },
+            data: { balance: targetWalletBalance },
+          });
+        }
 
         // Cập nhật giao dịch
         const updatedTransaction = await prisma.transaction.update({
           where: { id: BigInt(id) },
           data: {
-            wallet_id: updateData.wallet_id ? BigInt(updateData.wallet_id) : oldTransaction.wallet_id,
+            wallet_id: targetWalletId,
             category_id: updateData.category_id ? BigInt(updateData.category_id) : oldTransaction.category_id,
             type: newType,
             amount: newAmount,
             note: updateData.note !== undefined ? updateData.note : oldTransaction.note,
             image_url: updateData.image_url !== undefined ? updateData.image_url : oldTransaction.image_url,
             transaction_date: updateData.transaction_date ? new Date(updateData.transaction_date) : oldTransaction.transaction_date,
+          },
+          include: {
+            category: true,
+            wallet: true,
           },
         });
 
@@ -218,6 +327,7 @@ export class TransactionsService {
 
   // Hàm Helper: Tránh lỗi serialize BigInt JSON của NestJS
   private formatBigInt(data: any) {
+    if (!data) return data;
     return {
       ...data,
       id: Number(data.id),
@@ -225,6 +335,22 @@ export class TransactionsService {
       wallet_id: Number(data.wallet_id),
       category_id: Number(data.category_id),
       amount: Number(data.amount),
+      category: data.category
+        ? {
+            ...data.category,
+            id: Number(data.category.id),
+            user_id: Number(data.category.user_id),
+            parent_id: data.category.parent_id ? Number(data.category.parent_id) : null,
+          }
+        : undefined,
+      wallet: data.wallet
+        ? {
+            ...data.wallet,
+            id: Number(data.wallet.id),
+            user_id: Number(data.wallet.user_id),
+            balance: Number(data.wallet.balance),
+          }
+        : undefined,
     };
   }
 }
