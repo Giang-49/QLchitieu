@@ -14,6 +14,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { positiveInteger } from '../common/date-range';
 
 @Controller('categories')
 @UseGuards(JwtAuthGuard)
@@ -36,7 +37,11 @@ export class CategoriesController {
     @Param('id') id: string,
     @Body() dto: UpdateCategoryDto,
   ) {
-    return this.categoriesService.update(req.user.id, +id, dto);
+    return this.categoriesService.update(
+      req.user.id,
+      positiveInteger(id, 'Danh mục'),
+      dto,
+    );
   }
 
   @Delete(':id')
@@ -47,8 +52,8 @@ export class CategoriesController {
   ) {
     return this.categoriesService.remove(
       req.user.id,
-      +id,
-      replaceId ? +replaceId : undefined,
+      positiveInteger(id, 'Danh mục'),
+      replaceId ? positiveInteger(replaceId, 'Danh mục thay thế') : undefined,
     );
   }
 }

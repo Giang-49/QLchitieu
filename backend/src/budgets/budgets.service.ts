@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { categoryBranch } from '../categories/category-tree';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 
@@ -231,15 +232,15 @@ export class BudgetsService {
     month: number,
     year: number,
   ): Promise<number> {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 1);
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1));
 
     // Lấy thêm danh mục con nếu có để tính gộp theo US4.3
-    const children = await this.prisma.category.findMany({
-      where: { parent_id: BigInt(categoryId), user_id: BigInt(userId) },
-      select: { id: true },
+    const categories = await this.prisma.category.findMany({
+      where: { user_id: BigInt(userId), is_active: true },
+      select: { id: true, parent_id: true },
     });
-    const categoryIds = [BigInt(categoryId), ...children.map((c) => c.id)];
+    const categoryIds = categoryBranch(categories, BigInt(categoryId));
 
     const result = await this.prisma.transaction.aggregate({
       where: {

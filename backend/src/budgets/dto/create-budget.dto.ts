@@ -3,13 +3,15 @@ import { Type } from 'class-transformer';
 
 export class CreateBudgetDto {
   @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
+  @Min(1)
   @Type(() => Number)
   category_id: number;
 
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.01, { message: 'amount must be greater than 0' })
+  @Min(0.01, { message: 'Hạn mức phải lớn hơn 0' })
+  @Max(9999999999999.99)
   @Type(() => Number)
   amount: number;
 
@@ -23,6 +25,7 @@ export class CreateBudgetDto {
   @IsNotEmpty()
   @IsInt()
   @Min(2000)
+  @Max(9998)
   @Type(() => Number)
   year: number;
 }

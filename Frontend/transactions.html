@@ -1,76 +1,168 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thêm giao dịch - QLchitieu</title>
-<link rel="stylesheet" href="pages.css">
-</head>
-<body>
-<header class="topbar">
-  <div class="brand">SMART<span>MONEY</span></div>
-  <nav><a href="dashboard.html">Tổng quan</a><a href="transactions.html" class="active">Thêm giao dịch</a><a href="reports.html">Báo cáo</a></nav>
-  <button id="btn-logout" type="button">Đăng xuất</button>
-</header>
-<main>
-  <div class="kicker">QUẢN LÝ THU CHI</div>
-  <h1>Thêm giao dịch</h1>
-  <p class="sub">Ghi nhanh khoản thu hoặc khoản chi để số dư luôn chính xác.</p>
-
-  <div class="grid tx-layout">
-    <form class="card" id="tx-form" novalidate>
-      <h2>Thông tin giao dịch</h2>
-      <div class="type-tabs" role="group" aria-label="Loại giao dịch">
-        <button type="button" class="on" data-type="EXPENSE">↘ Khoản chi</button>
-        <button type="button" data-type="INCOME">↗ Khoản thu</button>
-      </div>
-
-      <div class="amount-box">
-        <label for="amount">Số tiền giao dịch</label>
-        <div class="amount-row"><input id="amount" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>₫</span></div>
-      </div>
-
-      <div class="lbl">Danh mục</div>
-      <div class="cats" id="cats" role="radiogroup" aria-label="Danh mục"></div>
-
-      <div class="two">
-        <div><label for="wallet">Ví giao dịch</label><select id="wallet"></select></div>
-        <div><label for="date">Ngày giao dịch</label><input id="date" type="date"></div>
-      </div>
-
-      <label for="note">Ghi chú (không bắt buộc)</label>
-      <textarea id="note" rows="3" maxlength="200" placeholder="Ví dụ: Ăn trưa cùng bạn..."></textarea>
-      <div class="err" id="form-err" role="alert"></div>
-
-      <div class="actions">
-        <button type="button" class="btn sec" id="btn-reset">Nhập lại</button>
-        <button type="submit" class="btn main" id="btn-save">Lưu giao dịch</button>
-      </div>
-    </form>
-
-    <aside class="grid">
-      <section class="card">
-        <div class="card-head"><h2>Xem trước giao dịch</h2><span class="pill chi" id="pv-pill">KHOẢN CHI</span></div>
-        <div class="preview-amt chi" id="pv-amt">−0 ₫</div>
-        <small style="color:var(--muted)">Giá trị giao dịch dự kiến</small>
-        <div class="hr"></div>
-        <div class="kv">Loại giao dịch <b id="pv-type">Khoản chi</b></div>
-        <div class="kv">Danh mục <b id="pv-cat">—</b></div>
-        <div class="kv">Ví <b id="pv-wallet">—</b></div>
-        <div class="kv">Ngày <b id="pv-date">—</b></div>
-        <div class="kv">Ghi chú <b id="pv-note">Chưa có</b></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <title>Giao dịch · SmartMoney</title>
+    <link rel="stylesheet" href="css/pages.css" />
+  </head>
+  <body data-page="transactions">
+    <aside class="shell" id="shell"></aside>
+    <main class="content" id="main">
+      <header class="page-heading">
+        <div>
+          <h1>Giao dịch</h1>
+          <p>Tra cứu và cập nhật các khoản thu, chi.</p>
+        </div>
+        <button id="new-transaction" class="button primary" type="button">
+          ＋ Giao dịch mới
+        </button>
+      </header>
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Lịch sử giao dịch</h2>
+          <button
+            class="button secondary"
+            id="export-transaction"
+            type="button"
+          >
+            ↓ Xuất Excel
+          </button>
+        </div>
+        <form id="filters" class="filter-panel">
+          <label class="search-field"
+            >Tìm theo ghi chú<input
+              id="filter-search"
+              type="search"
+              placeholder="Nhập ghi chú"
+          /></label>
+          <label
+            >Loại<select id="filter-type">
+              <option value="">Tất cả</option>
+              <option value="expense">Chi</option>
+              <option value="income">Thu</option>
+            </select></label
+          >
+          <label
+            >Danh mục<select id="filter-category">
+              <option value="">Tất cả</option>
+            </select></label
+          >
+          <label
+            >Ví<select id="filter-wallet">
+              <option value="">Tất cả</option>
+            </select></label
+          >
+          <label>Tháng<input id="filter-month" type="month" /></label>
+          <button id="clear-filters" type="button" class="text-button">
+            Xóa bộ lọc
+          </button>
+        </form>
+        <div id="transaction-list" class="table-scroll" aria-live="polite">
+          <p class="empty">Đang tải…</p>
+        </div>
+        <div class="pagination" id="pagination"></div>
       </section>
-      <section class="card">
-        <h2 style="margin-bottom:6px">Lưu ý khi ghi giao dịch</h2>
-        <div class="tip"><b>💡 Chọn đúng loại giao dịch.</b>Khoản thu làm tăng số dư, khoản chi làm giảm số dư ví.</div>
-        <div class="tip"><b>🗓️ Kiểm tra ngày giao dịch.</b>Ngày ghi nhận giúp báo cáo theo tuần và tháng chính xác hơn.</div>
-      </section>
-    </aside>
-  </div>
-</main>
-<div id="toast" role="status"></div>
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/transactions.js"></script>
-</body>
+      <dialog id="transaction-editor" aria-labelledby="editor-title">
+        <form id="transaction-form">
+          <header class="dialog-heading">
+            <h2 id="editor-title">Giao dịch mới</h2>
+            <button
+              class="icon-button"
+              id="close-editor"
+              type="button"
+              aria-label="Đóng"
+            >
+              ×
+            </button>
+          </header>
+          <div class="form-grid">
+            <label
+              >Loại<select name="type">
+                <option value="expense">Chi tiêu</option>
+                <option value="income">Thu nhập</option>
+              </select></label
+            >
+            <label
+              >Số tiền (₫)<input
+                name="amount"
+                type="number"
+                inputmode="decimal"
+                min="0.01"
+                max="9999999999999.99"
+                step="0.01"
+                required
+            /></label>
+            <label>Danh mục<select name="category_id" required></select></label>
+            <label>Ví<select name="wallet_id" required></select></label>
+            <label
+              >Ngày giao dịch<input
+                name="transaction_date"
+                type="date"
+                required
+            /></label>
+            <label>
+              Ảnh hóa đơn
+              <input
+                type="file"
+                name="receipt"
+                accept="image/png,image/jpeg,image/webp"
+              />
+              <small>PNG, JPEG hoặc WebP. Tối đa 5 MB.</small>
+            </label>
+            <label class="full"
+              >Hoặc nhập liên kết ảnh<input
+                name="image_url"
+                type="url"
+                placeholder="https://…"
+                maxlength="500"
+            /></label>
+            <label class="full checkbox-row" id="remove-receipt-option" hidden>
+              <input type="checkbox" name="remove_receipt" /> Gỡ ảnh hóa đơn
+              hiện tại
+            </label>
+            <label class="full"
+              >Ghi chú<textarea name="note" rows="2" maxlength="200"></textarea>
+            </label>
+          </div>
+          <p id="editor-error" class="inline-error" role="alert" hidden></p>
+          <footer class="dialog-actions">
+            <button class="button primary" id="save-transaction">
+              Lưu giao dịch
+            </button>
+          </footer>
+        </form>
+      </dialog>
+      <dialog id="delete-dialog" aria-labelledby="delete-title">
+        <form method="dialog">
+          <h2 id="delete-title">Xóa giao dịch?</h2>
+          <p>Số dư ví sẽ được điều chỉnh theo giao dịch bị xóa.</p>
+          <div class="dialog-actions">
+            <button class="button secondary" value="cancel">Hủy</button
+            ><button class="button danger" value="delete">Xóa giao dịch</button>
+          </div>
+        </form>
+      </dialog>
+      <dialog id="receipt-dialog" aria-labelledby="receipt-title">
+        <header class="dialog-heading">
+          <h2 id="receipt-title">Ảnh hóa đơn</h2>
+          <button
+            class="icon-button"
+            id="close-receipt"
+            type="button"
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </header>
+        <div id="receipt-content" aria-live="polite"></div>
+      </dialog>
+    </main>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/transactions.js"></script>
+  </body>
 </html>

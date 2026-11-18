@@ -1,51 +1,148 @@
-/* Tổng hợp ở client từ GET /transactions (1 request cho 6 tháng). Dữ liệu lớn nên chuyển sang endpoint /reports ở backend. */
-const $ = id => document.getElementById(id);
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#cbd5e1'];
-const ym = d => d.toISOString().slice(0, 7);
-const monthsBack = n => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - n); return ym(new Date(d.getFullYear(), d.getMonth(), 15)); };
-const sum = (a, type) => a.filter(t => isType(t, type)).reduce((s, t) => s + Number(t.amount), 0);
-const inMonth = (txs, m) => txs.filter(t => String(t.date).slice(0, 7) === m);
-const short = n => n >= 1e6 ? (n / 1e6).toFixed(2).replace('.', ',') + ' triệu' : vnd(n);
-let all = [];
+let reportRequest = 0;
+let exportRange;
 
-function donut(exp) {
-  const by = {}; exp.forEach(t => { const n = t.category?.name || 'Khác'; by[n] = (by[n] || 0) + Number(t.amount); });
-  let rows = Object.entries(by).sort((a, b) => b[1] - a[1]);
-  if (rows.length > 5) { const rest = rows.slice(4).reduce((s, r) => s + r[1], 0); rows = [...rows.slice(0, 4), ['Khác', rest]]; }
-  const total = rows.reduce((s, r) => s + r[1], 0);
-  if (!total) { $('donut-wrap').innerHTML = '<div class="empty">Chưa có khoản chi nào trong kỳ này.</div>'; return rows; }
-  const C = 2 * Math.PI * 70; let off = 0;
-  const arcs = rows.map(([, v], i) => { const len = v / total * C; const s = `<circle cx="90" cy="90" r="70" fill="none" stroke="${COLORS[i]}" stroke-width="28" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}"/>`; off += len; return s; }).join('');
-  $('donut-wrap').innerHTML = `<div class="donut"><svg width="180" height="180" viewBox="0 0 180 180">${arcs}</svg><div class="mid"><b>${short(total)}</b><small>Tổng chi</small></div></div>
-    <div class="leg">${rows.map(([n, v], i) => `<div><i style="background:${COLORS[i]}"></i><span>${esc(n)}</span><b>${Math.round(v / total * 100)}%</b></div>`).join('')}</div>`;
-  return rows;
+function reportRange() {
+  const value = $("report-date").value;
+  const period = $("report-period").value;
+  if (period === "month") return monthRange(value.slice(0, 7));
+  if (period === "year")
+    return {
+      from_date: value.slice(0, 4) + "-01-01",
+      to_date: value.slice(0, 4) + "-12-31",
+    };
+  const start = new Date(value + "T00:00:00Z");
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  return {
+    from_date: start.toISOString().slice(0, 10),
+    to_date: end.toISOString().slice(0, 10),
+  };
 }
 
-function bars() {
-  const ms = [5, 4, 3, 2, 1, 0].map(monthsBack), data = ms.map(m => { const t = inMonth(all, m); return [sum(t, 'INCOME'), sum(t, 'EXPENSE')]; });
-  const max = Math.max(1, ...data.flat());
-  $('bars').innerHTML = data.map(([i, e]) => `<div class="m"><div class="b inc" style="height:${i / max * 100}%" title="Thu ${vnd(i)}"></div><div class="b exp" style="height:${e / max * 100}%" title="Chi ${vnd(e)}"></div></div>`).join('');
-  $('xl').innerHTML = ms.map(m => `<span>T${+m.slice(5)}</span>`).join('');
+async function loadReport() {
+  if (!API.isAuthenticated()) return;
+  const request = ++reportRequest;
+  const status = $("report-status");
+  $("export-report").disabled = true;
+  if (!$("report-date").value || !$("report-date").validity.valid) {
+    delete status.dataset.loading;
+    status.textContent = "Chọn ngày hợp lệ để xem kỳ báo cáo.";
+    status.hidden = false;
+    return;
+  }
+  const range = reportRange();
+  const mode = $("report-period").value;
+  const [year, month] = $("report-date").value.split("-").map(Number);
+  const years = [
+    ...new Set([range.from_date.slice(0, 4), range.to_date.slice(0, 4)]),
+  ];
+  $("report-range").textContent =
+    dateLabel(range.from_date) + " – " + dateLabel(range.to_date);
+  status.hidden = false;
+  status.dataset.loading = "";
+  status.textContent = "Đang tải báo cáo…";
+  $("chart-data").hidden = true;
+  for (const id of ["report-income", "report-expense", "report-net"])
+    $(id).textContent = "—";
+  for (const id of ["donut", "bars", "trend"]) $(id).replaceChildren();
+
+  try {
+    const [pie, summaries, rows] = await Promise.all([
+      API.get("/reports/category-pie", range),
+      Promise.all(
+        years.map((year) =>
+          API.get("/reports/income-vs-expense", { ...range, year }),
+        ),
+      ),
+      monthlySeries(
+        year,
+        mode === "year" ? 12 : month,
+        mode === "year" ? 12 : 6,
+      ),
+    ]);
+    if (request !== reportRequest) return;
+    const income = summaries.reduce(
+      (sum, { data }) => sum + Number(data.total_income),
+      0,
+    );
+    const expense = summaries.reduce(
+      (sum, { data }) => sum + Number(data.total_expense),
+      0,
+    );
+    $("report-income").textContent = money(income);
+    $("report-expense").textContent = money(expense);
+    $("report-net").textContent = money(income - expense);
+    $("report-net").classList.toggle("negative", income < expense);
+    $("comparison-range").textContent =
+      "Tháng " +
+      rows[0].month +
+      "/" +
+      rows[0].year +
+      " – " +
+      rows.at(-1).month +
+      "/" +
+      rows.at(-1).year +
+      " · đơn vị ₫";
+    drawDonut($("donut"), pie.data);
+    drawSeries($("bars"), rows, "bar");
+    drawSeries($("trend"), rows, "line");
+    $("report-table").innerHTML =
+      "<table><thead><tr><th>Tháng</th><th>Thu</th><th>Chi</th><th>Chênh lệch</th></tr></thead><tbody>" +
+      rows
+        .map(
+          (row) =>
+            "<tr><td>" +
+            monthLabel(row) +
+            "</td><td>" +
+            money(row.income) +
+            "</td><td>" +
+            money(row.expense) +
+            "</td><td>" +
+            money(row.net) +
+            "</td></tr>",
+        )
+        .join("") +
+      "</tbody></table>";
+    $("chart-data").hidden = false;
+    status.hidden = true;
+    exportRange = range;
+    $("export-report").disabled = false;
+  } catch (error) {
+    if (request !== reportRequest) return;
+    delete status.dataset.loading;
+    status.textContent = error.message;
+  }
 }
 
-function render() {
-  const n = +$('period').value, cur = inMonth(all, monthsBack(n)), prev = inMonth(all, monthsBack(n + 1));
-  const inc = sum(cur, 'INCOME'), exp = sum(cur, 'EXPENSE'), pe = sum(prev, 'EXPENSE');
-  $('s-inc').textContent = vnd(inc); $('s-exp').textContent = vnd(exp); $('s-bal').textContent = vnd(inc - exp);
-  const rows = donut(cur.filter(t => isType(t, 'EXPENSE'))); bars();
-  const by = {}; cur.filter(t => isType(t, 'EXPENSE')).forEach(t => { const k = t.category?.name || 'Khác'; by[k] = (by[k] || 0) + Number(t.amount); });
-  const full = Object.entries(by).sort((a, b) => b[1] - a[1]);
-  $('detail').innerHTML = full.map(([k, v], i) => `<div class="dl"><div class="top"><span>${esc(k)}</span><span>${vnd(v)} · ${Math.round(v / exp * 100)}%</span></div><div class="track"><div style="width:${v / exp * 100}%;background:${COLORS[Math.min(i, 4)]}"></div></div></div>`).join('') || '<div class="empty">Chưa có dữ liệu chi tiêu.</div>';
-  const notes = [];
-  if (full[0]) notes.push(['🏆', `${full[0][0]} là nhóm chi nhiều nhất`, `Chiếm ${Math.round(full[0][1] / exp * 100)}% tổng chi (${vnd(full[0][1])}).`]);
-  if (pe) notes.push([exp > pe ? '📈' : '📉', `Chi tiêu ${exp > pe ? 'tăng' : 'giảm'} ${Math.abs(Math.round((exp - pe) / pe * 100))}%`, `So với tháng trước (${vnd(pe)}).`]);
-  if (inc) notes.push(['💰', `Bạn tiết kiệm được ${Math.round((inc - exp) / inc * 100)}% thu nhập`, inc >= exp ? 'Dòng tiền trong kỳ đang dương.' : 'Chi tiêu đang vượt thu nhập, hãy xem lại các nhóm lớn.']);
-  $('notes').innerHTML = notes.map(([i, t, d]) => `<div class="note"><span>${i}</span><div><b>${esc(t)}</b><p>${esc(d)}</p></div></div>`).join('') || '<div class="empty">Thêm giao dịch để xem nhận xét.</div>';
+function shiftPeriod(amount) {
+  const date = new Date(($("report-date").value || today()) + "T00:00:00Z");
+  const mode = $("report-period").value;
+  if (mode === "week") date.setUTCDate(date.getUTCDate() + amount * 7);
+  if (mode === "month") date.setUTCMonth(date.getUTCMonth() + amount, 1);
+  if (mode === "year")
+    date.setUTCFullYear(date.getUTCFullYear() + amount, 0, 1);
+  const value = date.toISOString().slice(0, 10);
+  if (value < $("report-date").min || value > $("report-date").max) return;
+  $("report-date").value = value;
+  loadReport();
 }
 
-$('period').addEventListener('change', render);
-(async () => {
-  const from = monthsBack(6) + '-01', to = monthRange(monthsBack(0)).to;
-  try { all = list(await API.getTransactions({ from, to })); } catch (e) { toast(e.message); }
-  render();
-})();
+$("report-date").value = today();
+$("report-date").addEventListener("change", loadReport);
+$("report-period").addEventListener("change", loadReport);
+$("prev-period").addEventListener("click", () => shiftPeriod(-1));
+$("next-period").addEventListener("click", () => shiftPeriod(1));
+$("export-report").addEventListener("click", async () => {
+  const range = exportRange;
+  try {
+    download(
+      await API.downloadExcel(range),
+      "so-chi-" + range.from_date + ".xlsx",
+    );
+  } catch (error) {
+    notice(error.message, "error");
+  }
+});
+loadReport();
+refreshOnRecordChange(loadReport);

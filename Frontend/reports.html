@@ -1,55 +1,113 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Báo cáo thu chi - QLchitieu</title>
-<link rel="stylesheet" href="pages.css">
-</head>
-<body>
-<header class="topbar">
-  <div class="brand">SMART<span>MONEY</span></div>
-  <nav><a href="dashboard.html">Tổng quan</a><a href="transactions.html">Thêm giao dịch</a><a href="reports.html" class="active">Báo cáo</a></nav>
-  <button id="btn-logout" type="button">Đăng xuất</button>
-</header>
-<main>
-  <div class="rp-head">
-    <div>
-      <div class="kicker">PHÂN TÍCH TÀI CHÍNH CÁ NHÂN</div>
-      <h1>Báo cáo thu chi</h1>
-      <p class="sub">Theo dõi dòng tiền và xem các nhóm chi tiêu của bạn.</p>
-    </div>
-    <div class="period"><label for="period">Thời gian</label>
-      <select id="period"><option value="0">Tháng này</option><option value="1">Tháng trước</option><option value="2">2 tháng trước</option></select></div>
-  </div>
-
-  <div class="grid stats">
-    <div class="card stat"><span class="ic" style="background:#e7f6ef;color:var(--primary)">↗</span><span class="t">Tổng thu</span><b id="s-inc">0 ₫</b><small>Tổng tiền nhận được trong tháng</small></div>
-    <div class="card stat"><span class="ic" style="background:#fff1e8;color:#f97316">↘</span><span class="t">Tổng chi</span><b id="s-exp">0 ₫</b><small>Tổng tiền đã chi trong tháng</small></div>
-    <div class="card stat"><span class="ic" style="background:#e7f0ff;color:#2f6fe4">=</span><span class="t">Thu – Chi</span><b id="s-bal">0 ₫</b><small>Số tiền còn lại sau thu chi trong kỳ</small></div>
-  </div>
-
-  <div class="grid row2">
-    <section class="card">
-      <div class="card-head"><div><h2>Cơ cấu chi tiêu</h2><p>Tỷ trọng các nhóm chi trong kỳ</p></div><span class="pill">THEO DANH MỤC</span></div>
-      <div class="donut-wrap" id="donut-wrap"></div>
-    </section>
-    <section class="card">
-      <div class="card-head"><div><h2>Thu và chi theo tháng</h2><p>So sánh dòng tiền trong 6 tháng gần nhất</p></div><span class="pill">6 THÁNG</span></div>
-      <div class="bars" id="bars" role="img" aria-label="Biểu đồ cột thu chi 6 tháng"></div>
-      <div class="xl" id="xl"></div>
-      <div class="lg"><span><i style="background:#10b981"></i>Thu nhập</span><span><i style="background:#f97316"></i>Chi tiêu</span></div>
-    </section>
-  </div>
-
-  <div class="grid row3">
-    <section class="card"><div class="card-head"><div><h2>Chi tiết theo danh mục</h2><p>Các khoản chi được sắp xếp theo tỷ trọng</p></div></div><div id="detail"></div></section>
-    <section class="card"><div class="card-head"><div><h2>Nhận xét nhanh</h2><p>Tóm tắt từ dữ liệu của bạn</p></div></div><div id="notes"></div></section>
-  </div>
-</main>
-<div id="toast" role="status"></div>
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/reports.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <title>Báo cáo · SmartMoney</title>
+    <link rel="stylesheet" href="css/pages.css" />
+  </head>
+  <body data-page="reports">
+    <aside class="shell" id="shell"></aside>
+    <main class="content" id="main">
+      <header class="page-heading">
+        <div>
+          <h1>Báo cáo thu chi</h1>
+          <p id="report-range">Chọn kỳ cần xem</p>
+        </div>
+        <button
+          class="button secondary"
+          type="button"
+          id="export-report"
+          disabled
+        >
+          ↓ Xuất Excel
+        </button>
+      </header>
+      <section class="panel filter-panel" aria-label="Chọn kỳ báo cáo">
+        <label
+          >Kỳ báo cáo
+          <select id="report-period">
+            <option value="month">Tháng</option>
+            <option value="week">Tuần</option>
+            <option value="year">Năm</option>
+          </select>
+        </label>
+        <label
+          >Ngày trong kỳ
+          <input type="date" id="report-date" min="2000-01-01" max="9998-12-31"
+        /></label>
+        <div class="period-buttons">
+          <button
+            class="button secondary"
+            id="prev-period"
+            type="button"
+            aria-label="Kỳ trước"
+          >
+            ←
+          </button>
+          <button
+            class="button secondary"
+            id="next-period"
+            type="button"
+            aria-label="Kỳ sau"
+          >
+            →
+          </button>
+        </div>
+      </section>
+      <p id="report-status" role="status" class="inline-error" hidden></p>
+      <section class="metrics three" aria-label="Tóm tắt kỳ báo cáo">
+        <article class="metric">
+          <span>Tổng thu</span
+          ><strong id="report-income" class="income">—</strong>
+        </article>
+        <article class="metric">
+          <span>Tổng chi</span><strong id="report-expense">—</strong>
+        </article>
+        <article class="metric">
+          <span>Chênh lệch</span><strong id="report-net">—</strong>
+        </article>
+      </section>
+      <div class="report-grid">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Cơ cấu chi tiêu</h2>
+              <p>Phân bổ theo danh mục trong kỳ</p>
+            </div>
+          </div>
+          <div id="donut"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Thu và chi theo tháng</h2>
+              <p id="comparison-range">So sánh thu và chi</p>
+            </div>
+          </div>
+          <div id="bars" class="chart-host"></div>
+        </section>
+      </div>
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Xu hướng chênh lệch</h2>
+            <p>Số dương khi thu nhiều hơn chi, số âm khi chi nhiều hơn thu</p>
+          </div>
+        </div>
+        <div id="trend" class="chart-host"></div>
+        <details id="chart-data" hidden>
+          <summary>Xem bảng số liệu theo tháng</summary>
+          <div id="report-table" class="table-scroll"></div>
+        </details>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/reports.js"></script>
+  </body>
 </html>

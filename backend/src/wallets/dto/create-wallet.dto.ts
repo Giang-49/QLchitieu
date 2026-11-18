@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsNumber, MaxLength, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsIn,
+  IsNumber,
+  MaxLength,
+  Max,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateWalletDto {
@@ -10,16 +19,17 @@ export class CreateWalletDto {
   @IsOptional()
   @IsString()
   @IsIn(['cash', 'bank', 'ewallet'])
-  type?: string = 'cash';
+  type?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(10)
-  currency?: string = 'VND';
+  currency?: string;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  balance?: number = 0;
+  @Max(9999999999999.99)
+  balance?: number;
 }

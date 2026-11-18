@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <title>Đăng nhập · SmartMoney</title>
+    <link rel="stylesheet" href="css/pages.css" />
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+  <body class="auth">
+    <main class="auth-layout">
+      <section class="auth-intro" aria-labelledby="intro-title">
+        <div class="wordmark">
+          <span class="brand-mark">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 7a2 2 0 0 1 2-2h12v3M5 8h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7M21 12h-5a1.5 1.5 0 0 0 0 3h5"
+              />
+            </svg>
+          </span>
+          SmartMoney
+        </div>
+        <div class="intro-copy">
+          <h1 id="intro-title">Sổ thu chi cá nhân</h1>
+          <p>
+            Ghi các khoản thu, chi, đặt ngân sách và theo dõi số dư từng ví.
+          </p>
+        </div>
+        <div class="sample" aria-label="Ví dụ minh họa báo cáo tháng">
+          <div class="sample-head">
+            <strong>Báo cáo tháng</strong><small>Số liệu minh họa</small>
+          </div>
+          <div class="sample-amount">
+            <span>Chênh lệch thu chi</span><strong>3.450.000 ₫</strong>
+          </div>
+          <div class="sample-chart" aria-hidden="true">
+            <div><i style="--bar: 45%"></i><b style="--bar: 31%"></b></div>
+            <div><i style="--bar: 62%"></i><b style="--bar: 42%"></b></div>
+            <div><i style="--bar: 48%"></i><b style="--bar: 38%"></b></div>
+            <div><i style="--bar: 74%"></i><b style="--bar: 51%"></b></div>
+            <div><i style="--bar: 65%"></i><b style="--bar: 44%"></b></div>
+            <div><i style="--bar: 89%"></i><b style="--bar: 59%"></b></div>
+          </div>
+          <div class="sample-key">
+            <span><i></i>Thu</span><span><i></i>Chi</span>
+          </div>
+        </div>
+      </section>
+      <section class="auth-area">
+        <div class="auth-card">
+          <div class="auth-tabs" aria-label="Truy cập tài khoản">
+            <button
+              id="tab-login"
+              type="button"
+              class="active"
+              aria-pressed="true"
+            >
+              Đăng nhập
+            </button>
+            <button id="tab-register" type="button" aria-pressed="false">
+              Đăng ký
+            </button>
+          </div>
+          <h2 id="auth-heading">Đăng nhập vào SmartMoney</h2>
+          <p class="inline-error" id="auth-error" role="alert" hidden></p>
+          <form id="form-login">
+            <label
+              >Email<input
+                name="email"
+                type="email"
+                autocomplete="username"
+                maxlength="191"
+                required
+            /></label>
+            <label
+              >Mật khẩu<input
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+            /></label>
+            <div class="auth-options">
+              <label class="checkbox"
+                ><input type="checkbox" name="remember" checked />Ghi nhớ đăng
+                nhập</label
+              >
+              <button type="button" class="text-button password-toggle">
+                Hiện mật khẩu
+              </button>
+            </div>
+            <button type="submit" class="button primary">Đăng nhập</button>
+          </form>
+          <form id="form-register" hidden>
+            <label
+              >Họ và tên<input
+                name="name"
+                autocomplete="name"
+                maxlength="100"
+                required
+            /></label>
+            <label
+              >Email<input
+                name="email"
+                type="email"
+                autocomplete="username"
+                maxlength="191"
+                required
+            /></label>
+            <label
+              >Mật khẩu<input
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                minlength="6"
+                placeholder="Ít nhất 6 ký tự"
+                required
+            /></label>
+            <label
+              >Xác nhận mật khẩu<input
+                name="confirm"
+                type="password"
+                autocomplete="new-password"
+                minlength="6"
+                required
+            /></label>
+            <button type="button" class="text-button password-toggle">
+              Hiện mật khẩu
+            </button>
+            <button type="submit" class="button primary">Tạo tài khoản</button>
+          </form>
+          <button
+            type="button"
+            class="button secondary demo-button"
+            id="demo-login"
+            hidden
+          >
+            Dùng tài khoản mẫu
+          </button>
+          <p class="connection" id="connection" role="status" hidden></p>
+        </div>
+      </section>
+    </main>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
+</html>

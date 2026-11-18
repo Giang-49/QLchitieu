@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Response } from 'express';
 import * as ExcelJS from 'exceljs';
+import { dateRange, positiveInteger, vietnamToday } from '../common/date-range';
 
 @Injectable()
 export class ReportsService {
@@ -17,16 +18,7 @@ export class ReportsService {
       type: 'expense',
     };
 
-    if (fromDate && toDate) {
-      where.transaction_date = {
-        gte: new Date(fromDate),
-        lte: new Date(toDate + 'T23:59:59.999Z'),
-      };
-    } else if (fromDate) {
-      where.transaction_date = { gte: new Date(fromDate) };
-    } else if (toDate) {
-      where.transaction_date = { lte: new Date(toDate + 'T23:59:59.999Z') };
-    }
+    where.transaction_date = dateRange(fromDate, toDate);
 
     const [transactions, categories] = await Promise.all([
       this.prisma.transaction.findMany({
@@ -80,14 +72,17 @@ export class ReportsService {
       let targetColor = rawCategory?.color || '#1F4E79';
       let targetIcon = rawCategory?.icon || null;
 
-      if (rawCategory?.parent_id) {
-        const parentCat = catById.get(Number(rawCategory.parent_id));
-        if (parentCat) {
-          targetCatId = Number(parentCat.id);
-          targetName = parentCat.name;
-          targetColor = parentCat.color || '#1F4E79';
-          targetIcon = parentCat.icon || null;
-        }
+      const visited = new Set([rawCatId]);
+      let parent = rawCategory?.parent_id;
+      while (parent && !visited.has(Number(parent))) {
+        const parentCat = catById.get(Number(parent));
+        if (!parentCat) break;
+        targetCatId = Number(parentCat.id);
+        targetName = parentCat.name;
+        targetColor = parentCat.color || '#1F4E79';
+        targetIcon = parentCat.icon || null;
+        visited.add(targetCatId);
+        parent = parentCat.parent_id;
       }
 
       if (!categoryMap.has(targetCatId)) {
@@ -105,7 +100,7 @@ export class ReportsService {
       item.total += amount;
 
       // Nếu có danh mục con, ghi nhận vào subcategories
-      if (rawCategory?.parent_id) {
+      if (rawCategory && targetCatId !== rawCatId) {
         if (!item.subcategories.has(rawCatId)) {
           item.subcategories.set(rawCatId, {
             id: rawCatId,
@@ -129,7 +124,10 @@ export class ReportsService {
         subcategories: Array.from(item.subcategories.values()).map((sub) => ({
           ...sub,
           total: Math.round(sub.total * 100) / 100,
-          percentage: item.total > 0 ? Math.round((sub.total / item.total) * 10000) / 100 : 0,
+          percentage:
+            item.total > 0
+              ? Math.round((sub.total / item.total) * 10000) / 100
+              : 0,
         })),
       };
     });
@@ -146,18 +144,30 @@ export class ReportsService {
    * US3.2: Biểu đồ cột so sánh Thu vs Chi theo 12 tháng trong năm
    * GET /reports/income-vs-expense?year=2026
    */
-  async getIncomeVsExpense(userId: number, yearParam?: number) {
-    const year = yearParam ? Number(yearParam) : new Date().getFullYear();
+  async getIncomeVsExpense(
+    userId: number,
+    yearParam?: string,
+    from?: string,
+    to?: string,
+  ) {
+    const year =
+      yearParam === undefined
+        ? vietnamToday().getUTCFullYear()
+        : positiveInteger(yearParam, 'Năm', 9998);
+    if (year < 1000) throw new BadRequestException('Năm không hợp lệ.');
 
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+    const startDate = new Date(Date.UTC(year, 0, 1));
+    const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+    const bounds = dateRange(from, to);
+    const gte = bounds?.gte && bounds.gte > startDate ? bounds.gte : startDate;
+    const lte = bounds?.lte && bounds.lte < endDate ? bounds.lte : endDate;
 
     const transactions = await this.prisma.transaction.findMany({
       where: {
         user_id: BigInt(userId),
         transaction_date: {
-          gte: startDate,
-          lte: endDate,
+          gte,
+          lte,
         },
       },
       select: {
@@ -180,7 +190,7 @@ export class ReportsService {
 
     for (const tx of transactions) {
       const d = new Date(tx.transaction_date);
-      const m = d.getMonth(); // 0 - 11
+      const m = d.getUTCMonth();
       const amount = Number(tx.amount);
 
       if (tx.type === 'income') {
@@ -196,7 +206,9 @@ export class ReportsService {
     for (let i = 0; i < 12; i++) {
       monthlyData[i].income = Math.round(monthlyData[i].income * 100) / 100;
       monthlyData[i].expense = Math.round(monthlyData[i].expense * 100) / 100;
-      monthlyData[i].net = Math.round((monthlyData[i].income - monthlyData[i].expense) * 100) / 100;
+      monthlyData[i].net =
+        Math.round((monthlyData[i].income - monthlyData[i].expense) * 100) /
+        100;
     }
 
     return {
@@ -221,6 +233,7 @@ export class ReportsService {
       type?: string;
       wallet_id?: string;
       category_id?: string;
+      search?: string;
     },
   ) {
     const where: any = {
@@ -228,27 +241,23 @@ export class ReportsService {
     };
 
     if (filters?.type) {
+      if (!['income', 'expense'].includes(filters.type))
+        throw new BadRequestException('Loại giao dịch không hợp lệ.');
       where.type = filters.type;
     }
 
     if (filters?.wallet_id) {
-      where.wallet_id = BigInt(filters.wallet_id);
+      where.wallet_id = BigInt(positiveInteger(filters.wallet_id, 'Ví'));
     }
 
     if (filters?.category_id) {
-      where.category_id = BigInt(filters.category_id);
+      where.category_id = BigInt(
+        positiveInteger(filters.category_id, 'Danh mục'),
+      );
     }
 
-    if (filters?.from_date && filters?.to_date) {
-      where.transaction_date = {
-        gte: new Date(filters.from_date),
-        lte: new Date(filters.to_date + 'T23:59:59.999Z'),
-      };
-    } else if (filters?.from_date) {
-      where.transaction_date = { gte: new Date(filters.from_date) };
-    } else if (filters?.to_date) {
-      where.transaction_date = { lte: new Date(filters.to_date + 'T23:59:59.999Z') };
-    }
+    where.transaction_date = dateRange(filters?.from_date, filters?.to_date);
+    if (filters?.search) where.note = { contains: filters.search };
 
     const transactions = await this.prisma.transaction.findMany({
       where,
@@ -283,7 +292,12 @@ export class ReportsService {
 
     // Style header row
     const headerRow = worksheet.getRow(1);
-    headerRow.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.font = {
+      name: 'Arial',
+      size: 11,
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+    };
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -314,9 +328,18 @@ export class ReportsService {
       });
 
       row.alignment = { vertical: 'middle' };
-      row.getCell('stt').alignment = { vertical: 'middle', horizontal: 'center' };
-      row.getCell('transaction_date').alignment = { vertical: 'middle', horizontal: 'center' };
-      row.getCell('type').alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell('stt').alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+      row.getCell('transaction_date').alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+      row.getCell('type').alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
 
       // Number formatting for amount
       const amountCell = row.getCell('amount');
@@ -335,10 +358,7 @@ export class ReportsService {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     await workbook.xlsx.write(res);
     res.end();

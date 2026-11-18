@@ -1,6 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { BudgetsService } from '../budgets/budgets.service';
+import { vietnamToday } from '../common/date-range';
+import { budgetAlertId, getSavedBudgetAlerts } from '../budgets/budget-alerts';
+import type { BudgetThreshold } from '../budgets/budget-alerts';
 
 export interface NotificationItem {
   id: string;
@@ -13,144 +17,102 @@ export interface NotificationItem {
 
 @Injectable()
 export class NotificationsService {
-  private readonly logger = new Logger(NotificationsService.name);
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly budgets: BudgetsService,
+  ) {}
 
-  constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Quét định kỳ hàng ngày lúc 00:00 (hoặc mỗi giờ) để ghi nhận các khoản nợ sắp đến hạn / quá hạn
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleDailyReminders() {
-    this.logger.log('Bắt đầu quét kiểm tra lịch nhắc nợ và cảnh báo chi tiêu...');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const overdueDebts = await this.prisma.debt.findMany({
+    await this.prisma.debt.updateMany({
       where: {
-        due_date: { lt: today },
+        due_date: { lt: vietnamToday() },
         status: { in: ['unpaid', 'partial'] },
       },
+      data: { status: 'overdue' },
     });
-
-    if (overdueDebts.length > 0) {
-      await this.prisma.debt.updateMany({
-        where: {
-          id: { in: overdueDebts.map((d) => d.id) },
-        },
-        data: { status: 'overdue' },
-      });
-      this.logger.log(`Đã cập nhật trạng thái quá hạn cho ${overdueDebts.length} khoản nợ.`);
-    }
   }
 
-  /**
-   * Lấy danh sách thông báo & nhắc nhở hiện tại cho người dùng (US2.3 & US5.4)
-   */
   async getUserNotifications(userId: number): Promise<NotificationItem[]> {
-    const notifications: NotificationItem[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // 1. Quét khoản nợ đến hạn hôm nay hoặc quá hạn (US5.4)
-    const debts = await this.prisma.debt.findMany({
-      where: {
-        user_id: BigInt(userId),
-        status: { not: 'completed' },
-        due_date: { not: null },
-      },
-    });
-
-    for (const debt of debts) {
-      if (!debt.due_date) continue;
-      const dueDate = new Date(debt.due_date);
-      dueDate.setHours(0, 0, 0, 0);
-
-      const isLend = debt.type === 'lend';
-      const actionType = isLend ? 'thu hồi nợ từ' : 'trả nợ cho';
-      const remainingFmt = Number(debt.remaining).toLocaleString('vi-VN');
-
-      if (dueDate.getTime() === today.getTime()) {
-        notifications.push({
-          id: `debt_due_${debt.id}`,
-          type: 'debt_due',
-          title: `Đến hạn ${isLend ? 'thu nợ' : 'trả nợ'} hôm nay`,
-          message: `Hôm nay là hạn ${actionType} ${debt.person_name}: ${remainingFmt} VND`,
-          target_id: Number(debt.id),
-          created_at: new Date(),
-        });
-      } else if (dueDate < today) {
-        notifications.push({
-          id: `debt_overdue_${debt.id}`,
-          type: 'debt_overdue',
-          title: `Khoản nợ đã quá hạn!`,
-          message: `Khoản ${actionType} ${debt.person_name} (${remainingFmt} VND) đã quá hạn thanh toán.`,
-          target_id: Number(debt.id),
-          created_at: new Date(),
-        });
-      }
-    }
-
-    // 2. Quét cảnh báo vượt ngân sách tháng hiện tại (US2.3)
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 1);
-
-    const budgets = await this.prisma.budget.findMany({
-      where: {
-        user_id: BigInt(userId),
-        month: currentMonth,
-        year: currentYear,
-      },
-      include: {
-        category: true,
-      },
-    });
-
-    for (const budget of budgets) {
-      const spentResult = await this.prisma.transaction.aggregate({
+    const today = vietnamToday();
+    const month = today.getUTCMonth() + 1;
+    const year = today.getUTCFullYear();
+    const [debts, budgets, savedAlerts] = await Promise.all([
+      this.prisma.debt.findMany({
         where: {
           user_id: BigInt(userId),
-          category_id: budget.category_id,
-          type: 'expense',
-          transaction_date: {
-            gte: startOfMonth,
-            lt: endOfMonth,
-          },
+          status: { not: 'completed' },
+          due_date: { lte: today },
         },
-        _sum: { amount: true },
+        orderBy: { due_date: 'asc' },
+      }),
+      this.budgets.findAll(userId, month, year),
+      getSavedBudgetAlerts(this.prisma, BigInt(userId), year, month),
+    ]);
+
+    const notices: NotificationItem[] = debts.map((debt) => {
+      const overdue = debt.due_date! < today;
+      const action = debt.type === 'lend' ? 'Thu nợ từ' : 'Trả nợ cho';
+      return {
+        id: (overdue ? 'debt_overdue_' : 'debt_due_') + debt.id,
+        type: overdue ? 'debt_overdue' : 'debt_due',
+        title: overdue ? 'Khoản nợ quá hạn' : 'Khoản nợ đến hạn hôm nay',
+        message:
+          action +
+          ' ' +
+          debt.person_name +
+          ' · ' +
+          Number(debt.remaining).toLocaleString('vi-VN') +
+          ' ₫',
+        target_id: Number(debt.id),
+        created_at: debt.due_date!,
+      };
+    });
+    const budgetNotices = new Map<string, NotificationItem>();
+    const indexByCategory = new Map(
+      budgets.map((budget) => [budget.category_id, budget]),
+    );
+    const add = (
+      budget: (typeof budgets)[number],
+      threshold: BudgetThreshold,
+      percentage: number,
+      date: Date,
+    ) => {
+      const id = budgetAlertId(budget.category_id, year, month, threshold);
+      if (budgetNotices.has(id)) return;
+      const exceeded = threshold === 100;
+      budgetNotices.set(id, {
+        id,
+        type: exceeded ? 'budget_danger' : 'budget_warning',
+        title: exceeded ? 'Đã chạm hoặc vượt hạn mức' : 'Sắp chạm hạn mức',
+        message:
+          (budget.category?.name || 'Danh mục') +
+          ' · ' +
+          percentage.toLocaleString('vi-VN') +
+          '% hạn mức tháng',
+        target_id: budget.id,
+        created_at: date,
       });
-
-      const spent = Number(spentResult._sum.amount || 0);
-      const budgetAmount = Number(budget.amount);
-      const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
-      const catName = budget.category?.name || 'Danh mục';
-
-      if (percentage >= 100) {
-        notifications.push({
-          id: `budget_danger_${budget.id}`,
-          type: 'budget_danger',
-          title: `Vượt hạn mức ngân sách: ${catName}`,
-          message: `Chi tiêu danh mục "${catName}" đã đạt ${Math.round(percentage)}% (${spent.toLocaleString('vi-VN')} / ${budgetAmount.toLocaleString('vi-VN')} VND). Bội chi!`,
-          target_id: Number(budget.id),
-          created_at: new Date(),
-        });
-      } else if (percentage >= 80) {
-        notifications.push({
-          id: `budget_warning_${budget.id}`,
-          type: 'budget_warning',
-          title: `Cảnh báo ngân sách: ${catName}`,
-          message: `Chi tiêu danh mục "${catName}" đã đạt ${Math.round(percentage)}% hạn mức tháng này.`,
-          target_id: Number(budget.id),
-          created_at: new Date(),
-        });
-      }
+    };
+    for (const alert of savedAlerts) {
+      const budget = indexByCategory.get(Number(alert.category_id));
+      if (budget)
+        add(
+          budget,
+          Number(alert.threshold) === 100 ? 100 : 80,
+          Number(alert.percentage),
+          alert.created_at,
+        );
     }
-
-    return notifications;
+    for (const budget of budgets) {
+      if (budget.percentage >= 80)
+        add(
+          budget,
+          budget.percentage >= 100 ? 100 : 80,
+          budget.percentage,
+          budget.created_at,
+        );
+    }
+    return [...notices, ...budgetNotices.values()];
   }
 }

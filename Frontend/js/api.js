@@ -1,171 +1,101 @@
-/**
- * MODULE GIAO TIẾP VỚI BACKEND API (FETCH CLIENT)
- */
 const API = {
-  /**
-   * Lưu thông tin đăng nhập vào LocalStorage
-   */
-  saveAuth(accessToken, user) {
-    if (accessToken) localStorage.setItem(CONFIG.TOKEN_KEY, accessToken);
-    if (user) localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(user));
+  saveAuth(token, user, remember = true) {
+    this.clearAuth();
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem(CONFIG.TOKEN_KEY, token);
+    storage.setItem(CONFIG.USER_KEY, JSON.stringify(user));
   },
 
-  /**
-   * Lấy JWT Access Token từ LocalStorage
-   */
+  clearAuth() {
+    for (const storage of [sessionStorage, localStorage]) {
+      storage.removeItem(CONFIG.TOKEN_KEY);
+      storage.removeItem(CONFIG.USER_KEY);
+    }
+  },
+
   getToken() {
-    return localStorage.getItem(CONFIG.TOKEN_KEY);
+    return sessionStorage.getItem(CONFIG.TOKEN_KEY) || localStorage.getItem(CONFIG.TOKEN_KEY);
   },
 
-  /**
-   * Lấy thông tin User hiện tại từ LocalStorage
-   */
   getUser() {
-    const raw = localStorage.getItem(CONFIG.USER_KEY);
     try {
-      return raw ? JSON.parse(raw) : null;
+      return JSON.parse(sessionStorage.getItem(CONFIG.USER_KEY) || localStorage.getItem(CONFIG.USER_KEY));
     } catch {
       return null;
     }
   },
 
-  /**
-   * Kiểm tra người dùng đã đăng nhập chưa
-   */
-  isAuthenticated() {
-    return !!this.getToken();
-  },
+  isAuthenticated() { return Boolean(this.getToken()); },
 
-  /**
-   * Đăng xuất: Xóa sạch dữ liệu trong LocalStorage
-   */
   logout() {
-    localStorage.removeItem(CONFIG.TOKEN_KEY);
-    localStorage.removeItem(CONFIG.USER_KEY);
-    window.location.href = 'index.html';
+    this.clearAuth();
+    location.replace('login.html');
   },
 
-  /**
-   * Hàm gọi API chung với Timeout & Exception handling
-   */
-  async request(endpoint, options = {}) {
-    const url = `${CONFIG.API_BASE_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    };
-
-    const token = this.getToken();
-    if (token && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${token}`;
+  query(params = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== '' && value != null) query.set(key, value);
     }
+    return query.size ? '?' + query.toString() : '';
+  },
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+  async request(endpoint, { method = 'GET', body, binary = false, publicRoute = false } = {}) {
+    const headers = new Headers();
+    const token = this.getToken();
+    const multipart = body instanceof FormData;
+    if (body !== undefined && !multipart) headers.set('Content-Type', 'application/json');
+    if (token && !publicRoute) headers.set('Authorization', 'Bearer ' + token);
 
     try {
-      const response = await fetch(url, {
-        ...options,
+      const response = await fetch(CONFIG.API_BASE_URL + endpoint, {
+        method,
         headers,
-        signal: controller.signal,
+        body: multipart ? body : JSON.stringify(body),
+        signal: AbortSignal.timeout(CONFIG.TIMEOUT_MS),
       });
-      clearTimeout(timer);
 
-      let payload = null;
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        payload = await response.json();
-      } else {
-        const text = await response.text();
-        payload = { message: text };
-      }
-
+      if (response.ok && binary) return await response.blob();
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        // Backend trả về format chuẩn { success: false, message: ... }
-        const errMsg = payload?.message || `Lỗi máy chủ (${response.status})`;
-        throw new Error(errMsg);
+        if (response.status === 401 && token && !publicRoute) this.logout();
+        const message = Array.isArray(payload.message) ? payload.message.join(' · ') : payload.message;
+        const error = new Error(message || 'Yêu cầu không thành công (' + response.status + ').');
+        error.status = response.status;
+        throw error;
       }
-
       return payload;
-    } catch (err) {
-      clearTimeout(timer);
-      if (err.name === 'AbortError') {
-        throw new Error('Hết thời gian chờ kết nối máy chủ backend (Timeout).');
+    } catch (error) {
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        throw new Error('Máy chủ phản hồi quá lâu. Vui lòng thử lại.');
       }
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        throw new Error(
-          'Không thể kết nối đến máy chủ Backend tại ' +
-            CONFIG.API_BASE_URL +
-            '. Vui lòng kiểm tra Backend đã được khởi chạy chưa (PORT 3000).'
-        );
-      }
-      throw err;
+      if (error instanceof TypeError) throw new Error('Không kết nối được máy chủ. Vui lòng thử lại.');
+      throw error;
     }
   },
 
-  /**
-   * Kiểm tra kết nối nhanh tới Backend
-   */
+  async authenticate(path, body, remember) {
+    const result = await this.request('/auth/' + path, { method: 'POST', body, publicRoute: true });
+    if (!result.data?.access_token) throw new Error('Máy chủ không trả về phiên đăng nhập.');
+    this.saveAuth(result.data.access_token, result.data.user, remember);
+    return result;
+  },
+
+  login(email, password, remember) { return this.authenticate('login', { email, password }, remember); },
+  register(name, email, password) { return this.authenticate('register', { name, email, password }); },
+
   async checkBackendHealth() {
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch(`${CONFIG.API_BASE_URL}/auth/login`, {
-        method: 'OPTIONS',
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      return res.status < 500;
+      const response = await fetch(CONFIG.API_BASE_URL, { signal: AbortSignal.timeout(2500) });
+      return response.ok && (response.headers.get('content-type') || '').includes('application/json');
     } catch {
       return false;
     }
   },
 
-  /**
-   * API Đăng nhập
-   * POST /api/v1/auth/login
-   */
-  async login(email, password) {
-    const res = await this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (res?.data?.access_token) {
-      this.saveAuth(res.data.access_token, res.data.user);
-    }
-    return res;
-  },
-
-  /**
-   * API Đăng ký tài khoản
-   * POST /api/v1/auth/register
-   */
-  async register(name, email, password) {
-    const res = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    if (res?.data?.access_token) {
-      this.saveAuth(res.data.access_token, res.data.user);
-    }
-    return res;
-  },
-
-  /**
-   * API Lấy thông tin tài khoản hiện tại
-   * GET /api/v1/auth/profile
-   */
-  async getProfile() {
-    return this.request('/auth/profile', { method: 'GET' });
-  },
-
-  /**
-   * API Lấy danh sách ví (để kiểm tra sau khi đăng nhập thành công)
-   * GET /api/v1/wallets
-   */
-  async getWallets() {
-    return this.request('/wallets', { method: 'GET' });
-  },
+  get(path, filters) { return this.request(path + this.query(filters)); },
+  post(path, body) { return this.request(path, { method: 'POST', body }); },
+  put(path, body) { return this.request(path, { method: 'PUT', body }); },
+  remove(path, filters) { return this.request(path + this.query(filters), { method: 'DELETE' }); },
+  downloadExcel(filters) { return this.request('/reports/export-excel' + this.query(filters), { binary: true }); },
 };

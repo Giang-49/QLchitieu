@@ -52,6 +52,7 @@ logs/
 *.sqlite3
 
 # Uploads & Temporary Files
+backend/var/
 uploads/
 tmp/
 temp/

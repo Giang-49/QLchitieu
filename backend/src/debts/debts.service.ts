@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDebtDto } from './dto/create-debt.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { vietnamToday } from '../common/date-range';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class DebtsService {
@@ -47,16 +49,19 @@ export class DebtsService {
     }
 
     // lend → trừ ví, borrow → cộng ví
-    const balanceChange =
-      dto.type === 'lend' ? -dto.amount : dto.amount;
+    const balanceChange = dto.type === 'lend' ? -dto.amount : dto.amount;
 
-    const newBalance = Number(wallet.balance) + balanceChange;
-    if (newBalance < 0) {
-      throw new BadRequestException('Số dư ví không đủ để cho vay');
-    }
-
-    const [debt] = await this.prisma.$transaction([
-      this.prisma.debt.create({
+    const debt = await this.prisma.$transaction(async (prisma) => {
+      const updated = await prisma.wallet.updateMany({
+        where: {
+          id: wallet.id,
+          ...(balanceChange < 0 && { balance: { gte: -balanceChange } }),
+        },
+        data: { balance: { increment: balanceChange } },
+      });
+      if (!updated.count)
+        throw new BadRequestException('Số dư ví không đủ để cho vay');
+      return prisma.debt.create({
         data: {
           user_id: BigInt(userId),
           wallet_id: BigInt(dto.wallet_id),
@@ -67,12 +72,8 @@ export class DebtsService {
           due_date: dto.due_date ? new Date(dto.due_date) : null,
           note: dto.note ?? null,
         },
-      }),
-      this.prisma.wallet.update({
-        where: { id: BigInt(dto.wallet_id) },
-        data: { balance: { increment: balanceChange } },
-      }),
-    ]);
+      });
+    });
 
     return this.serializeDebt(debt);
   }
@@ -81,9 +82,11 @@ export class DebtsService {
   async findAll(userId: number, status?: string) {
     const where: any = { user_id: BigInt(userId) };
 
-    // If filtering by specific status (not overdue), add to where
-    if (status && status !== 'overdue') {
-      where.status = status;
+    if (
+      status &&
+      !['unpaid', 'partial', 'completed', 'overdue'].includes(status)
+    ) {
+      throw new BadRequestException('Trạng thái khoản nợ không hợp lệ');
     }
 
     const debts = await this.prisma.debt.findMany({
@@ -91,30 +94,20 @@ export class DebtsService {
       orderBy: { created_at: 'desc' },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = vietnamToday();
 
     const result = debts.map((d) => {
       const serialized = this.serializeDebt(d);
 
       // Auto-detect overdue: due_date < today && status not completed
-      if (
-        d.due_date &&
-        d.due_date < today &&
-        d.status !== 'completed'
-      ) {
+      if (d.due_date && d.due_date < today && d.status !== 'completed') {
         serialized.status = 'overdue';
       }
 
       return serialized;
     });
 
-    // If filtering by overdue, keep only overdue items
-    if (status === 'overdue') {
-      return result.filter((d) => d.status === 'overdue');
-    }
-
-    return result;
+    return status ? result.filter((d) => d.status === status) : result;
   }
 
   // ── FIND ONE ──────────────────────────────────────────────
@@ -131,13 +124,8 @@ export class DebtsService {
     const serialized = this.serializeDebt(debt);
 
     // Auto-detect overdue
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (
-      debt.due_date &&
-      debt.due_date < today &&
-      debt.status !== 'completed'
-    ) {
+    const today = vietnamToday();
+    if (debt.due_date && debt.due_date < today && debt.status !== 'completed') {
       serialized.status = 'overdue';
     }
 
@@ -145,11 +133,7 @@ export class DebtsService {
   }
 
   // ── CREATE PAYMENT ────────────────────────────────────────
-  async createPayment(
-    debtId: number,
-    userId: number,
-    dto: CreatePaymentDto,
-  ) {
+  async createPayment(debtId: number, userId: number, dto: CreatePaymentDto) {
     // Verify debt ownership
     const debt = await this.prisma.debt.findFirst({
       where: { id: BigInt(debtId), user_id: BigInt(userId) },
@@ -178,20 +162,35 @@ export class DebtsService {
       throw new NotFoundException('Ví thanh toán không tồn tại');
     }
 
-    const newRemaining = remaining - dto.amount;
-    const newStatus = newRemaining === 0 ? 'completed' : 'partial';
+    const newRemaining = new Prisma.Decimal(debt.remaining).minus(dto.amount);
+    const newStatus = newRemaining.isZero() ? 'completed' : 'partial';
 
     // borrow trả nợ → trừ ví, lend thu hồi → cộng ví
-    const balanceChange =
-      debt.type === 'borrow' ? -dto.amount : dto.amount;
+    const balanceChange = debt.type === 'borrow' ? -dto.amount : dto.amount;
 
-    const newBalance = Number(wallet.balance) + balanceChange;
-    if (newBalance < 0) {
-      throw new BadRequestException('Số dư ví không đủ để thanh toán');
-    }
-
-    const [payment] = await this.prisma.$transaction([
-      this.prisma.debtPayment.create({
+    const payment = await this.prisma.$transaction(async (prisma) => {
+      const debtUpdate = await prisma.debt.updateMany({
+        where: {
+          id: debt.id,
+          remaining: debt.remaining,
+          status: { not: 'completed' },
+        },
+        data: { remaining: newRemaining, status: newStatus },
+      });
+      if (!debtUpdate.count)
+        throw new BadRequestException(
+          'Dư nợ vừa thay đổi. Vui lòng tải lại và thử lại.',
+        );
+      const walletUpdate = await prisma.wallet.updateMany({
+        where: {
+          id: wallet.id,
+          ...(balanceChange < 0 && { balance: { gte: -balanceChange } }),
+        },
+        data: { balance: { increment: balanceChange } },
+      });
+      if (!walletUpdate.count)
+        throw new BadRequestException('Số dư ví không đủ để thanh toán');
+      return prisma.debtPayment.create({
         data: {
           debt_id: BigInt(debtId),
           wallet_id: BigInt(dto.wallet_id),
@@ -199,19 +198,8 @@ export class DebtsService {
           note: dto.note ?? null,
           paid_at: dto.paid_at ? new Date(dto.paid_at) : new Date(),
         },
-      }),
-      this.prisma.debt.update({
-        where: { id: BigInt(debtId) },
-        data: {
-          remaining: newRemaining,
-          status: newStatus,
-        },
-      }),
-      this.prisma.wallet.update({
-        where: { id: BigInt(dto.wallet_id) },
-        data: { balance: { increment: balanceChange } },
-      }),
-    ]);
+      });
+    });
 
     return this.serializePayment(payment);
   }

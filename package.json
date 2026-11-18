@@ -1,0 +1,9 @@
+{
+  "name": "smartmoney-qlchitieu",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "demo": "node scripts/start-demo.cjs",
+    "smoke": "npm --prefix backend run smoke"
+  }
+}

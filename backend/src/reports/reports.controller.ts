@@ -34,11 +34,10 @@ export class ReportsController {
   getIncomeVsExpense(
     @Request() req: any,
     @Query('year') year?: string,
+    @Query('from_date') from?: string,
+    @Query('to_date') to?: string,
   ) {
-    return this.reportsService.getIncomeVsExpense(
-      req.user.id,
-      year ? parseInt(year, 10) : undefined,
-    );
+    return this.reportsService.getIncomeVsExpense(req.user.id, year, from, to);
   }
 
   /**
@@ -53,6 +52,7 @@ export class ReportsController {
     @Query('type') type?: string,
     @Query('wallet_id') walletId?: string,
     @Query('category_id') categoryId?: string,
+    @Query('search') search?: string,
   ) {
     return this.reportsService.exportExcel(req.user.id, res, {
       from_date: fromDate,
@@ -60,6 +60,7 @@ export class ReportsController {
       type,
       wallet_id: walletId,
       category_id: categoryId,
+      search,
     });
   }
 }

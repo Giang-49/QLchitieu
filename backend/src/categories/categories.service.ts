@@ -3,279 +3,168 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import type { Category } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { categoryBranch } from './category-tree';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+
+const serializable = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
+
+function serialize(category: Category) {
+  return {
+    ...category,
+    id: Number(category.id),
+    user_id: Number(category.user_id),
+    parent_id: category.parent_id === null ? null : Number(category.parent_id),
+  };
+}
+
+type CategoryNode = ReturnType<typeof serialize> & { children: CategoryNode[] };
 
 @Injectable()
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Lấy danh sách danh mục dạng cây cha-con.
-   * Chỉ lấy is_active = true, lọc theo type nếu có.
-   */
   async findAll(userId: number, type?: string) {
-    const where: any = {
-      user_id: BigInt(userId),
-      is_active: true,
-    };
-
-    if (type) {
-      if (!['income', 'expense'].includes(type)) {
-        throw new BadRequestException('Type phải là income hoặc expense');
-      }
-      where.type = type;
+    if (type && !['income', 'expense'].includes(type)) {
+      throw new BadRequestException('Loại danh mục phải là income hoặc expense.');
     }
-
-    const categories = await this.prisma.category.findMany({
-      where,
-      orderBy: { name: 'asc' },
+    const rows = await this.prisma.category.findMany({
+      where: { user_id: BigInt(userId), is_active: true, type: type || undefined },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
 
-    // Build tree: nest children into parent
-    return this.buildTree(categories);
-  }
-
-  /**
-   * Tạo danh mục mới.
-   */
-  async create(userId: number, dto: CreateCategoryDto) {
-    // Validate trùng tên danh mục cùng loại
-    const existing = await this.prisma.category.findFirst({
-      where: {
-        user_id: BigInt(userId),
-        name: dto.name,
-        type: dto.type,
-        is_active: true,
-      },
-    });
-    if (existing) {
-      throw new BadRequestException('Danh mục cùng tên và loại đã tồn tại');
+    const nodes = new Map<number, CategoryNode>(
+      rows.map(category => [Number(category.id), { ...serialize(category), children: [] }]),
+    );
+    const roots: CategoryNode[] = [];
+    for (const node of nodes.values()) {
+      const parent = node.parent_id ? nodes.get(node.parent_id) : undefined;
+      if (parent) parent.children.push(node);
+      else roots.push(node);
     }
-
-    // Validate parent_id nếu có
-    if (dto.parent_id) {
-      const parent = await this.prisma.category.findFirst({
-        where: {
-          id: BigInt(dto.parent_id),
-          user_id: BigInt(userId),
-          is_active: true,
-        },
-      });
-
-      if (!parent) {
-        throw new BadRequestException('Danh mục cha không tồn tại');
-      }
-
-      if (parent.type !== dto.type) {
-        throw new BadRequestException(
-          'Danh mục con phải cùng loại (income/expense) với danh mục cha',
-        );
-      }
-    }
-
-    const category = await this.prisma.category.create({
-      data: {
-        user_id: BigInt(userId),
-        name: dto.name,
-        icon: dto.icon,
-        color: dto.color,
-        type: dto.type,
-        parent_id: dto.parent_id ? BigInt(dto.parent_id) : null,
-      },
-    });
-
-    return {
-      ...category,
-      id: Number(category.id),
-      user_id: Number(category.user_id),
-      parent_id: category.parent_id ? Number(category.parent_id) : null,
-    };
-  }
-
-  /**
-   * Cập nhật danh mục.
-   */
-  async update(userId: number, id: number, dto: UpdateCategoryDto) {
-    const category = await this.prisma.category.findFirst({
-      where: { id: BigInt(id), user_id: BigInt(userId), is_active: true },
-    });
-
-    if (!category) {
-      throw new NotFoundException('Danh mục không tồn tại');
-    }
-
-    // Validate: parent_id không được trỏ về chính mình
-    if (dto.parent_id !== undefined && dto.parent_id !== null) {
-      if (Number(dto.parent_id) === Number(id)) {
-        throw new BadRequestException(
-          'Danh mục cha không được trỏ về chính mình',
-        );
-      }
-
-      const parent = await this.prisma.category.findFirst({
-        where: {
-          id: BigInt(dto.parent_id),
-          user_id: BigInt(userId),
-          is_active: true,
-        },
-      });
-
-      if (!parent) {
-        throw new BadRequestException('Danh mục cha không tồn tại');
-      }
-
-      // Check circular: parent không được là con của category hiện tại
-      const isChild = await this.isDescendant(dto.parent_id, id, userId);
-      if (isChild) {
-        throw new BadRequestException(
-          'Không thể đặt danh mục con làm danh mục cha (tham chiếu vòng)',
-        );
-      }
-    }
-
-    const updated = await this.prisma.category.update({
-      where: { id: BigInt(id) },
-      data: {
-        name: dto.name,
-        icon: dto.icon,
-        color: dto.color,
-        type: dto.type,
-        parent_id: dto.parent_id !== undefined ? (dto.parent_id ? BigInt(dto.parent_id) : null) : undefined,
-      },
-    });
-
-    return {
-      ...updated,
-      id: Number(updated.id),
-      user_id: Number(updated.user_id),
-      parent_id: updated.parent_id ? Number(updated.parent_id) : null,
-    };
-  }
-
-  /**
-   * Xóa danh mục.
-   * - Nếu có giao dịch → yêu cầu replace_id, chuyển giao dịch sang danh mục thay thế, soft delete.
-   * - Nếu không có giao dịch → hard delete.
-   */
-  async remove(userId: number, id: number, replaceId?: number) {
-    const category = await this.prisma.category.findFirst({
-      where: { id: BigInt(id), user_id: BigInt(userId), is_active: true },
-    });
-
-    if (!category) {
-      throw new NotFoundException('Danh mục không tồn tại');
-    }
-
-    // Kiểm tra có giao dịch không
-    const transactionCount = await this.prisma.transaction.count({
-      where: { category_id: BigInt(id) },
-    });
-
-    if (transactionCount > 0) {
-      // Có giao dịch → cần replace_id
-      if (!replaceId) {
-        throw new BadRequestException(
-          'Danh mục đang có giao dịch. Vui lòng cung cấp replace_id để chuyển giao dịch sang danh mục thay thế',
-        );
-      }
-
-      // Validate replace category
-      const replaceCategory = await this.prisma.category.findFirst({
-        where: {
-          id: BigInt(replaceId),
-          user_id: BigInt(userId),
-          is_active: true,
-        },
-      });
-
-      if (!replaceCategory) {
-        throw new BadRequestException('Danh mục thay thế không tồn tại');
-      }
-
-      if (Number(replaceId) === Number(id)) {
-        throw new BadRequestException(
-          'Danh mục thay thế không được trùng danh mục cần xóa',
-        );
-      }
-
-      // Chuyển tất cả giao dịch sang danh mục thay thế, rồi soft delete
-      await this.prisma.$transaction([
-        this.prisma.transaction.updateMany({
-          where: { category_id: BigInt(id) },
-          data: { category_id: BigInt(replaceId) },
-        }),
-        this.prisma.category.update({
-          where: { id: BigInt(id) },
-          data: { is_active: false },
-        }),
-      ]);
-
-      return { message: `Đã chuyển ${transactionCount} giao dịch và ẩn danh mục` };
-    }
-
-    // Không có giao dịch → cập nhật children trỏ về null, rồi hard delete
-    await this.prisma.$transaction([
-      this.prisma.category.updateMany({
-        where: { parent_id: BigInt(id), user_id: BigInt(userId) },
-        data: { parent_id: null },
-      }),
-      this.prisma.category.delete({
-        where: { id: BigInt(id) },
-      }),
-    ]);
-
-    return { message: 'Đã xóa danh mục' };
-  }
-
-  // ——————————— Private helpers ———————————
-
-  /**
-   * Build tree từ flat list.
-   */
-  private buildTree(categories: any[]) {
-    const map = new Map<string, any>();
-    const roots: any[] = [];
-
-    // Index tất cả categories theo id
-    for (const cat of categories) {
-      map.set(String(cat.id), { ...cat, children: [] });
-    }
-
-    for (const cat of categories) {
-      const node = map.get(String(cat.id));
-      if (cat.parent_id && map.has(String(cat.parent_id))) {
-        map.get(String(cat.parent_id)).children.push(node);
-      } else {
-        roots.push(node);
-      }
-    }
-
     return roots;
   }
 
-  /**
-   * Kiểm tra xem targetId có phải là con cháu của ancestorId không.
-   */
-  private async isDescendant(
-    targetId: number,
-    ancestorId: number,
-    userId: number,
-  ): Promise<boolean> {
-    const children = await this.prisma.category.findMany({
-      where: { parent_id: BigInt(ancestorId), user_id: BigInt(userId), is_active: true },
+  async create(userId: number, dto: CreateCategoryDto) {
+    const owner = BigInt(userId);
+    const name = dto.name.trim();
+    const parent = dto.parent_id == null ? null : BigInt(dto.parent_id);
+    const category = await this.prisma.$transaction(async (db) => {
+      await this.checkName(db, owner, dto.type, name);
+      if (parent !== null) await this.checkParent(db, owner, dto.type, parent);
+
+      return db.category.create({
+        data: {
+          user_id: owner,
+          type: dto.type,
+          name,
+          icon: dto.icon || 'tag',
+          color: dto.color || '#1F4E79',
+          parent_id: parent,
+        },
+      });
+    }, serializable);
+    return serialize(category);
+  }
+
+  async update(userId: number, id: number, dto: UpdateCategoryDto) {
+    const owner = BigInt(userId);
+    const categoryId = BigInt(id);
+    const category = await this.prisma.$transaction(async (db) => {
+      const current = await db.category.findFirst({
+        where: { id: categoryId, user_id: owner, is_active: true },
+      });
+      if (!current) throw new NotFoundException('Danh mục không tồn tại.');
+      if (dto.type != null && current.type !== dto.type) {
+        throw new BadRequestException('Không thể đổi loại của danh mục đang dùng.');
+      }
+
+      const name = dto.name?.trim();
+      if (name !== undefined && name !== current.name) {
+        await this.checkName(db, owner, current.type, name, categoryId);
+      }
+      if (dto.parent_id != null) {
+        const parent = BigInt(dto.parent_id);
+        await this.checkParent(db, owner, current.type, parent);
+        const tree = await db.category.findMany({
+          where: { user_id: owner, is_active: true },
+          select: { id: true, parent_id: true },
+        });
+        if (categoryBranch(tree, categoryId).includes(parent)) {
+          throw new BadRequestException('Không thể đặt danh mục hiện tại hoặc danh mục con làm danh mục cha.');
+        }
+      }
+
+      return db.category.update({
+        where: { id: categoryId },
+        data: {
+          name,
+          icon: dto.icon,
+          color: dto.color,
+          parent_id: dto.parent_id === undefined
+            ? undefined
+            : dto.parent_id === null ? null : BigInt(dto.parent_id),
+        },
+      });
+    }, serializable);
+    return serialize(category);
+  }
+
+  async remove(userId: number, id: number, replaceId?: number) {
+    const owner = BigInt(userId);
+    const categoryId = BigInt(id);
+    return this.prisma.$transaction(async (db) => {
+      const category = await db.category.findFirst({
+        where: { id: categoryId, user_id: owner, is_active: true },
+      });
+      if (!category) throw new NotFoundException('Danh mục không tồn tại.');
+
+      const where = { user_id: owner, category_id: categoryId };
+      const transactionCount = await db.transaction.count({ where });
+      if (transactionCount > 0) {
+        if (replaceId == null || replaceId === id) {
+          throw new BadRequestException('Hãy chọn danh mục thay thế cho các giao dịch đang sử dụng danh mục này.');
+        }
+        const replacement = await db.category.findFirst({
+          where: { id: BigInt(replaceId), user_id: owner, type: category.type, is_active: true },
+          select: { id: true },
+        });
+        if (!replacement) throw new BadRequestException('Danh mục thay thế phải tồn tại và cùng loại thu hoặc chi.');
+        await db.transaction.updateMany({ where, data: { category_id: replacement.id } });
+      }
+
+      await db.category.updateMany({
+        where: { user_id: owner, parent_id: categoryId },
+        data: { parent_id: category.parent_id },
+      });
+      // Giữ lịch sử ngân sách và ẩn danh mục khỏi biểu mẫu giao dịch.
+      await db.category.update({ where: { id: categoryId }, data: { is_active: false } });
+      return {
+        message: transactionCount
+          ? 'Đã chuyển ' + transactionCount + ' giao dịch và ẩn danh mục'
+          : 'Đã ẩn danh mục',
+      };
+    }, serializable);
+  }
+
+  private async checkName(
+    db: Prisma.TransactionClient, owner: bigint, type: string, name: string, except?: bigint,
+  ) {
+    if (!name) throw new BadRequestException('Tên danh mục không được để trống.');
+    const existing = await db.category.count({
+      where: { user_id: owner, is_active: true, name, type, id: except === undefined ? undefined : { not: except } },
+    });
+    if (existing > 0) throw new BadRequestException('Danh mục cùng tên và loại đã tồn tại.');
+  }
+
+  private async checkParent(db: Prisma.TransactionClient, owner: bigint, type: string, id: bigint) {
+    const parent = await db.category.findFirst({
+      where: { id, user_id: owner, is_active: true, type },
       select: { id: true },
     });
-
-    for (const child of children) {
-      if (Number(child.id) === Number(targetId)) {
-        return true;
-      }
-      const found = await this.isDescendant(targetId, Number(child.id), userId);
-      if (found) return true;
-    }
-
-    return false;
+    if (!parent) throw new BadRequestException('Danh mục cha phải tồn tại và cùng loại thu hoặc chi.');
   }
 }

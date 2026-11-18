@@ -6,6 +6,34 @@
 > **Tiêu chuẩn tài liệu:** IEEE Std 830-1998 & Agile Scrum Framework  
 > **Phiên bản:** v1.0.0 (MVP)
 
+## Chạy bản demo SmartMoney
+
+Cần Node.js 22 trở lên và Docker Desktop đang chạy. Mở PowerShell tại thư mục gốc của dự án:
+
+```powershell
+npm run demo
+```
+
+Lệnh sẽ khởi động MySQL, cài thư viện nếu thư mục cài đặt chưa có, nạp dữ liệu mẫu và chạy NestJS. Mở địa chỉ in ở dòng **SmartMoney sẵn sàng**. Cổng mặc định là 3000. Nếu cổng mặc định đang bận, ứng dụng sẽ chọn cổng trống tiếp theo và in địa chỉ mới. Giữ cửa sổ PowerShell mở trong lúc trình bày.
+
+Chọn **Dùng tài khoản mẫu** trên trang đăng nhập, hoặc nhập:
+
+- Email `demo@sochi.test`
+- Mật khẩu `SoChiDemo2026!`
+
+Dữ liệu mẫu gồm sáu tháng giao dịch, ba ví, ba hạn mức và bốn khoản nợ. Chạy lại lệnh sẽ giữ các thay đổi bạn đã thực hiện trên tài khoản mẫu. Bạn có thể đăng ký một tài khoản riêng để thử từ dữ liệu trống.
+
+**Gợi ý trình bày.** Mở Tổng quan và Báo cáo để xem ba biểu đồ. Tạo một khoản chi với ảnh hóa đơn, sau đó sửa hoặc xóa để đối chiếu số dư. Mở Ngân sách để xem tiến độ, rồi ghi nhận một lần thanh toán trong Sổ nợ và xuất Excel từ Báo cáo.
+
+Để kiểm tra API bằng tài khoản kiểm thử tạm thời, mở PowerShell thứ hai tại thư mục gốc. Thay địa chỉ trong lệnh bằng địa chỉ mà máy chủ đã in ra:
+
+```powershell
+$env:SMOKE_URL = 'http://localhost:3001'
+npm run smoke
+```
+
+Thông báo ngân sách và nhắc nợ có trong mục **Thông báo**. Ảnh hóa đơn được lưu trong `backend/var/receipts` và chỉ chủ giao dịch tải được qua API đã đăng nhập.
+
 ---
 
 ## 📌 1. Giới thiệu tổng quan (Introduction)

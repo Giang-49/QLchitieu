@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DebtsService } from './debts.service';
 import { CreateDebtDto } from './dto/create-debt.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { positiveInteger } from '../common/date-range';
 
 @Controller('debts')
 @UseGuards(JwtAuthGuard)
@@ -36,7 +37,10 @@ export class DebtsController {
   // GET /debts/:id - Chi tiết khoản nợ + lịch sử payments
   @Get(':id')
   findOne(@Request() req: any, @Param('id') id: string) {
-    return this.debtsService.findOne(+id, req.user.id);
+    return this.debtsService.findOne(
+      positiveInteger(id, 'Khoản nợ'),
+      req.user.id,
+    );
   }
 
   // POST /debts/:id/payments - Ghi nhận thanh toán
@@ -47,6 +51,10 @@ export class DebtsController {
     @Param('id') id: string,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
-    return this.debtsService.createPayment(+id, req.user.id, createPaymentDto);
+    return this.debtsService.createPayment(
+      positiveInteger(id, 'Khoản nợ'),
+      req.user.id,
+      createPaymentDto,
+    );
   }
 }

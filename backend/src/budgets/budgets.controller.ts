@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { BudgetsService } from './budgets.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
+import { positiveInteger, vietnamToday } from '../common/date-range';
 
 @Controller('budgets')
 @UseGuards(JwtAuthGuard)
@@ -27,9 +28,15 @@ export class BudgetsController {
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
-    const now = new Date();
-    const m = month ? parseInt(month, 10) : now.getMonth() + 1;
-    const y = year ? parseInt(year, 10) : now.getFullYear();
+    const now = vietnamToday();
+    const m =
+      month === undefined
+        ? now.getUTCMonth() + 1
+        : positiveInteger(month, 'Tháng', 12);
+    const y =
+      year === undefined
+        ? now.getUTCFullYear()
+        : positiveInteger(year, 'Năm', 9998);
     const budgets = await this.budgetsService.findAll(req.user.id, m, y);
     return { message: 'Budgets retrieved successfully', data: budgets };
   }

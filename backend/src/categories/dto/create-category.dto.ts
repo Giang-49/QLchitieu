@@ -2,7 +2,8 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsNumber,
+  IsInt,
+  Min,
   IsIn,
   MaxLength,
 } from 'class-validator';
@@ -25,10 +26,13 @@ export class CreateCategoryDto {
 
   @IsString({ message: 'Loại danh mục phải là chuỗi' })
   @IsNotEmpty({ message: 'Loại danh mục không được để trống' })
-  @IsIn(['income', 'expense'], { message: 'Loại danh mục phải là income hoặc expense' })
+  @IsIn(['income', 'expense'], {
+    message: 'Loại danh mục phải là income hoặc expense',
+  })
   type: string;
 
-  @IsNumber({}, { message: 'parent_id phải là số' })
+  @IsInt({ message: 'Danh mục cha phải là số nguyên' })
+  @Min(1)
   @IsOptional()
   parent_id?: number;
 }

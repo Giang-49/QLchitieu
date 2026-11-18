@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { WalletsService } from './wallets.service';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
+import { positiveInteger } from '../common/date-range';
 
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
@@ -37,7 +38,7 @@ export class WalletsController {
   // GET /wallets/:id - Chi tiết ví
   @Get(':id')
   findOne(@Request() req: any, @Param('id') id: string) {
-    return this.walletsService.findOne(+id, req.user.id);
+    return this.walletsService.findOne(positiveInteger(id, 'Ví'), req.user.id);
   }
 
   // PUT /wallets/:id - Cập nhật ví
@@ -48,12 +49,16 @@ export class WalletsController {
     @Param('id') id: string,
     @Body() updateWalletDto: UpdateWalletDto,
   ) {
-    return this.walletsService.update(+id, req.user.id, updateWalletDto);
+    return this.walletsService.update(
+      positiveInteger(id, 'Ví'),
+      req.user.id,
+      updateWalletDto,
+    );
   }
 
   // DELETE /wallets/:id - Xóa ví
   @Delete(':id')
   remove(@Request() req: any, @Param('id') id: string) {
-    return this.walletsService.remove(+id, req.user.id);
+    return this.walletsService.remove(positiveInteger(id, 'Ví'), req.user.id);
   }
 }
