@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/budgets?month=11&year=2026"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  month: "11"
+  year: "2026"
+order: 2000

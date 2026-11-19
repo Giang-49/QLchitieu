@@ -1,0 +1,9 @@
+$kind: http-request
+name: 3.3 Xóa / Ẩn danh mục (kèm replace_id)
+url: "{{baseUrl}}/categories/1?replace_id=2"
+method: DELETE
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  replace_id: "2"
+order: 3000

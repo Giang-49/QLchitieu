@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/wallets/1"
+method: PUT
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "name": "MB Bank Tiết Kiệm"
+    }
+order: 4000

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/debts/1/payments"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "wallet_id": 1,
+      "amount": 1000000,
+      "note": "Trả đợt 1"
+    }
+order: 3000

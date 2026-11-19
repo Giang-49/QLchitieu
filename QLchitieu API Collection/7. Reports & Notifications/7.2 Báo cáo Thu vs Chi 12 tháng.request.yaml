@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/reports/income-vs-expense?year=2026"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  year: "2026"
+order: 2000

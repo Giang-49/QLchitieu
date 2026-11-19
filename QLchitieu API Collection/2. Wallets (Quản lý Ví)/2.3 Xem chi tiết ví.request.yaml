@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/wallets/1"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+order: 3000

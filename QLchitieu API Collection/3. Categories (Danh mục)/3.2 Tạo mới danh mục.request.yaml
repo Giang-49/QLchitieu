@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/categories"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "name": "Cà phê & Đồ uống",
+      "icon": "coffee",
+      "color": "#E67E22",
+      "type": "expense"
+    }
+order: 2000

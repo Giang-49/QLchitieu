@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/transactions?page=1&limit=10&type=expense"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  page: "1"
+  limit: "10"
+  type: expense
+order: 2000

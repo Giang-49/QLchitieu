@@ -1,0 +1,5 @@
+$kind: collection
+description: Bộ sưu tập API hoàn chỉnh cho Hệ thống Quản lý Chi tiêu Cá nhân (QLchitieu)
+variables:
+  baseUrl: http://localhost:3000/api/v1
+  token: ""

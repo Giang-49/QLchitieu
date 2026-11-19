@@ -1,0 +1,16 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Chạy `npm run demo` từ thư mục gốc và mở địa chỉ hiển thị trong PowerShell. NestJS phục vụ cả giao diện và API ở cùng địa chỉ. Hướng dẫn và thông tin tài khoản mẫu nằm trong [README dự án](../README.md).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "cypress": "^16.3.0"
+  }
+}
